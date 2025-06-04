@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles can be added below */
+body {
+  @apply bg-gray-100 font-sans antialiased;
+}
+
+#app {
+  @apply min-h-screen;
+}
