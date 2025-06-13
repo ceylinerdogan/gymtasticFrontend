@@ -1,28 +1,10 @@
-<script setup>
-import { ref } from 'vue';
-import CameraPage from './components/CameraPage.vue';
-
-// Backend WebSocket URL (configurable via environment variable)
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'localhost:5000';
-
-// Track the selected exercise
-const selectedExercise = ref('squat');
-
-// Start camera status - initialize to false
-const isCameraStarted = ref(false);
-
-// Handle camera start/stop
-function toggleCamera() {
-  console.log('App.vue: Toggling camera state from', isCameraStarted.value, 'to', !isCameraStarted.value);
-  isCameraStarted.value = !isCameraStarted.value;
-}
-</script>
-
 <template>
-  <div id="app-container">
-    <CameraPage />
-  </div>
+  <router-view />
 </template>
+
+<script setup>
+// No logic needed here for now
+</script>
 
 <style>
 html, body {
