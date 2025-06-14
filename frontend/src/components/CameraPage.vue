@@ -112,7 +112,7 @@
     <button
       @click="toggleCamera"
       :disabled="isLoading"
-      class="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full text-white font-bold shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed z-10"
+      class="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full text-white font-bold shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed z-10"
       :class="isCameraOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'"
     >
       <!-- Loading Spinner -->

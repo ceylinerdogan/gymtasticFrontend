@@ -2,9 +2,21 @@
   <div class="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-purple-400 to-pink-300">
     <div class="w-full max-w-md bg-white bg-opacity-20 rounded-xl shadow-lg p-8">
       <div class="flex flex-col items-center mb-6">
-        <div class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4 overflow-hidden">
-          <img v-if="profile.profilepic" :src="profile.profilepic" alt="Profile" class="w-24 h-24 object-cover rounded-full" />
-          <span v-else class="text-4xl">👤</span>
+        <div class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4 overflow-hidden relative">
+          <img 
+            v-if="profileImageSrc" 
+            :src="profileImageSrc" 
+            alt="Profile" 
+            class="w-24 h-24 object-cover rounded-full"
+            @load="onImageLoad"
+            @error="onImageError"
+          />
+          <div 
+            v-else 
+            class="w-24 h-24 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center"
+          >
+            <span class="text-3xl text-white">👤</span>
+          </div>
         </div>
         <input v-if="editing" type="file" accept="image/*" @change="onFileChange" class="mb-2" />
         <button v-if="editing && selectedPic" class="bg-purple-600 text-white px-2 py-1 rounded mb-2" @click="uploadPic">Upload Photo</button>
@@ -30,7 +42,7 @@
             <span>Gender:</span><span>{{ profile.gender }}</span>
           </div>
           <div class="flex justify-between text-white mb-1">
-            <span>Date of Birth:</span><span>{{ profile.birth_date }}</span>
+            <span>Date of Birth:</span><span>{{ formatDate(profile.birth_date) }}</span>
           </div>
         </div>
         <div class="bg-white bg-opacity-10 rounded-lg p-4 mb-4">
@@ -73,6 +85,8 @@ const editProfile = ref({})
 const editError = ref('')
 const editSuccess = ref(false)
 const selectedPic = ref(null)
+const imageLoaded = ref(false)
+const profileImageSrc = ref('')
 const router = useRouter()
 
 const logout = () => {
@@ -80,6 +94,47 @@ const logout = () => {
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('user_id')
   router.push('/login')
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'Not set'
+  
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  } catch (error) {
+    return 'Invalid date'
+  }
+}
+
+const processProfileImage = (base64String) => {
+  if (!base64String) {
+    profileImageSrc.value = ''
+    return
+  }
+  
+  // Ensure the base64 string has the proper data URL format
+  if (base64String.startsWith('data:image/')) {
+    profileImageSrc.value = base64String
+  } else {
+    // If it's just the base64 string without the data URL prefix, add it
+    profileImageSrc.value = `data:image/jpeg;base64,${base64String}`
+  }
+}
+
+const onImageLoad = () => {
+  imageLoaded.value = true
+  console.log('Profile image loaded successfully')
+}
+
+const onImageError = () => {
+  imageLoaded.value = false
+  profileImageSrc.value = ''
+  console.log('Profile image failed to load')
 }
 
 const onFileChange = (e) => {
@@ -106,9 +161,14 @@ const uploadPic = async () => {
     })
     if (res.ok) {
       profile.value.profilepic = selectedPic.value
+      processProfileImage(selectedPic.value)
       selectedPic.value = null
+      editSuccess.value = true
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Error uploading profile picture:', e)
+    editError.value = 'Failed to upload profile picture'
+  }
 }
 
 const updateProfile = async () => {
@@ -158,6 +218,12 @@ onMounted(async () => {
       if (res.ok) {
         const data = await res.json()
         profile.value = data.profile || {}
+        
+        // Process profile image if it exists
+        if (profile.value.profilepic) {
+          processProfileImage(profile.value.profilepic)
+        }
+        
         // Optionally calculate BMI and category
         if (profile.value.height && profile.value.weight) {
           const heightM = profile.value.height > 10 ? profile.value.height / 100 : profile.value.height

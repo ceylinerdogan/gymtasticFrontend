@@ -1,60 +1,105 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-gradient-to-b from-purple-400 to-pink-300">
-    <div class="flex-1 flex flex-col items-center justify-center">
-      <h2 class="text-2xl font-bold text-white mb-4">Hi, {{ userName }}</h2>
-      <p class="text-white mb-6">Let's check your activity</p>
-      <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-white bg-opacity-20 rounded-lg p-4 text-center">
-          <div class="text-2xl font-bold text-purple-700">5</div>
-          <div class="text-white text-sm">Completed Workouts</div>
-        </div>
-        <div class="bg-white bg-opacity-20 rounded-lg p-4 text-center">
-          <div class="text-2xl font-bold text-purple-700">1</div>
-          <div class="text-white text-sm">Workouts in Progress</div>
-        </div>
-        <div class="bg-white bg-opacity-20 rounded-lg p-4 text-center">
-          <div class="text-2xl font-bold text-purple-700">30</div>
-          <div class="text-white text-sm">Minutes Spent</div>
-        </div>
-      </div>
-      <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-white bg-opacity-20 rounded-lg p-2 text-center">
-          <div class="text-purple-700 font-bold">Squat</div>
-          <div class="text-white text-xs">10 Reps • 3 Sets</div>
-        </div>
-        <div class="bg-white bg-opacity-20 rounded-lg p-2 text-center">
-          <div class="text-purple-700 font-bold">Plank</div>
-          <div class="text-white text-xs">40s Hold • 3 Sets</div>
-        </div>
-        <div class="bg-white bg-opacity-20 rounded-lg p-2 text-center">
-          <div class="text-purple-700 font-bold">Lunge</div>
-          <div class="text-white text-xs">10 Reps • 3 Sets</div>
-        </div>
-      </div>
-      <div class="flex flex-col items-center mb-6">
-        <img src="https://img.icons8.com/ios-filled/100/000000/dumbbell.png" alt="Workout" class="w-24 h-24 mb-2" />
-        <button @click="startWorkout" class="bg-purple-600 text-white px-8 py-2 rounded-lg font-semibold">Start Workout</button>
-      </div>
-      <div class="text-center text-white mb-4">Keep the progress! You're improving every day!</div>
+  <div class="min-h-screen bg-gradient-to-b from-purple-400 to-pink-300 pb-20 px-4">
+    <!-- Header Section -->
+    <div class="pt-8 pb-6 text-center">
+      <div class="text-6xl mb-4">💪</div>
+      <h1 class="text-3xl font-bold text-white mb-2">Welcome back, {{ userName }}!</h1>
+      <p class="text-white opacity-90">Ready to crush your fitness goals?</p>
     </div>
-    <nav class="w-full bg-white bg-opacity-20 py-2 flex justify-around items-center rounded-t-xl">
-      <router-link to="/" class="flex flex-col items-center text-purple-700">
-        <span class="material-icons">home</span>
-        <span class="text-xs">Home</span>
-      </router-link>
-      <router-link to="/workouts" class="flex flex-col items-center text-purple-700">
-        <span class="material-icons">fitness_center</span>
-        <span class="text-xs">Workouts</span>
-      </router-link>
-      <router-link to="/history" class="flex flex-col items-center text-purple-700">
-        <span class="material-icons">history</span>
-        <span class="text-xs">History</span>
-      </router-link>
-      <router-link to="/profile" class="flex flex-col items-center text-purple-700">
-        <span class="material-icons">person</span>
-        <span class="text-xs">Profile</span>
-      </router-link>
-    </nav>
+
+    <!-- Quick Action Cards -->
+    <div class="space-y-4 mb-8">
+      <!-- Start Workout Card -->
+      <div @click="startWorkout" class="bg-white bg-opacity-20 rounded-2xl p-6 backdrop-blur-sm border border-white border-opacity-30 cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:bg-opacity-30 active:scale-[0.98]">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
+              <span class="text-2xl text-white">🏋️‍♂️</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-white">Start Workout</h3>
+              <p class="text-white opacity-80">Real-time pose detection</p>
+            </div>
+          </div>
+          <div class="text-white opacity-60">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Browse Workouts Card -->
+      <div @click="browseWorkouts" class="bg-white bg-opacity-20 rounded-2xl p-6 backdrop-blur-sm border border-white border-opacity-30 cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:bg-opacity-30 active:scale-[0.98]">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <div class="w-16 h-16 bg-pink-500 rounded-full flex items-center justify-center">
+              <span class="text-2xl text-white">📋</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-white">Browse Workouts</h3>
+              <p class="text-white opacity-80">Choose from available programs</p>
+            </div>
+          </div>
+          <div class="text-white opacity-60">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- View History Card -->
+      <div @click="viewHistory" class="bg-white bg-opacity-20 rounded-2xl p-6 backdrop-blur-sm border border-white border-opacity-30 cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:bg-opacity-30 active:scale-[0.98]">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <div class="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center">
+              <span class="text-2xl text-white">📊</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-white">Workout History</h3>
+              <p class="text-white opacity-80">Track your progress</p>
+            </div>
+          </div>
+          <div class="text-white opacity-60">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured Exercises Section -->
+    <div class="mb-8">
+      <h3 class="text-xl font-bold text-white mb-4 text-center">Featured Exercises</h3>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="bg-white bg-opacity-20 rounded-xl p-4 text-center backdrop-blur-sm">
+          <div class="text-3xl mb-2">🏋️</div>
+          <div class="text-white font-semibold text-sm">Squat</div>
+          <div class="text-white opacity-70 text-xs">Lower Body</div>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-xl p-4 text-center backdrop-blur-sm">
+          <div class="text-3xl mb-2">🧘</div>
+          <div class="text-white font-semibold text-sm">Plank</div>
+          <div class="text-white opacity-70 text-xs">Full Body</div>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-xl p-4 text-center backdrop-blur-sm">
+          <div class="text-3xl mb-2">🚶</div>
+          <div class="text-white font-semibold text-sm">Lunge</div>
+          <div class="text-white opacity-70 text-xs">Lower Body</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Motivation Section -->
+    <div class="text-center">
+      <div class="bg-white bg-opacity-20 rounded-2xl p-6 backdrop-blur-sm border border-white border-opacity-30">
+        <div class="text-4xl mb-3">🔥</div>
+        <h3 class="text-lg font-bold text-white mb-2">Stay Consistent!</h3>
+        <p class="text-white opacity-90 text-sm">Every workout counts towards your goals. Start your session now!</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -68,6 +113,14 @@ const router = useRouter()
 
 const startWorkout = () => {
   router.push('/camera')
+}
+
+const browseWorkouts = () => {
+  router.push('/workouts')
+}
+
+const viewHistory = () => {
+  router.push('/history')
 }
 
 onMounted(async () => {

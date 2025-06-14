@@ -61,6 +61,14 @@ const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 
+const formatDateForServer = (dateString) => {
+  if (!dateString) return ''
+  
+  // Convert from YYYY-MM-DD to ISO timestamp format
+  const date = new Date(dateString)
+  return date.toISOString()
+}
+
 const registerUser = async () => {
   error.value = ''
   success.value = false
@@ -81,7 +89,7 @@ const registerUser = async () => {
         gender: form.value.gender,
         height: form.value.height,
         weight: form.value.weight,
-        birth_date: form.value.birth_date,
+        birth_date: formatDateForServer(form.value.birth_date),
         fitness_goal: form.value.fitness_goal,
         activity_level: form.value.activity_level
       })
