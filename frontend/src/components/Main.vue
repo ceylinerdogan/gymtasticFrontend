@@ -33,7 +33,7 @@
       </div>
       <div class="flex flex-col items-center mb-6">
         <img src="https://img.icons8.com/ios-filled/100/000000/dumbbell.png" alt="Workout" class="w-24 h-24 mb-2" />
-        <button class="bg-purple-600 text-white px-8 py-2 rounded-lg font-semibold">Start Workout</button>
+        <button @click="startWorkout" class="bg-purple-600 text-white px-8 py-2 rounded-lg font-semibold">Start Workout</button>
       </div>
       <div class="text-center text-white mb-4">Keep the progress! You're improving every day!</div>
     </div>
@@ -60,9 +60,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { fetchWithAuth } from '../router'
 
 const userName = ref('[User Name]')
+const router = useRouter()
+
+const startWorkout = () => {
+  router.push('/camera')
+}
 
 onMounted(async () => {
   try {

@@ -2,10 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
-    path: '/',
-    redirect: '/login'
-  },
-  {
     path: '/login',
     name: 'Login',
     component: () => import('./components/Login.vue')
@@ -39,6 +35,11 @@ const routes = [
     path: '/history',
     name: 'History',
     component: () => import('./components/History.vue')
+  },
+  {
+    path: '/camera',
+    name: 'Camera',
+    component: () => import('./components/CameraPage.vue')
   }
 ]
 
@@ -56,6 +57,12 @@ router.beforeEach((to, from, next) => {
   if (authRequired && !loggedIn) {
     return next('/login')
   }
+  
+  // If user is logged in and trying to access login page, redirect to main
+  if (loggedIn && to.path === '/login') {
+    return next('/')
+  }
+  
   next()
 })
 
