@@ -1,0 +1,13 @@
+{
+  "appId": "com.gymtastic.app",
+  "appName": "GymTastic",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "allowNavigation": ["*"],
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

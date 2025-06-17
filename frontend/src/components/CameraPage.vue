@@ -71,11 +71,11 @@
     <!-- Socket Connection Status -->
     <div class="absolute top-20 left-4 flex items-center space-x-2 z-20">
       <div 
-        :class="socketConnected ? 'bg-green-500' : 'bg-red-500'"
+        :class="socketConnected ? 'bg-green-500' : (fallbackInterval ? 'bg-yellow-500' : 'bg-red-500')"
         class="w-3 h-3 rounded-full"
       ></div>
       <span class="text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
-        {{ socketConnected ? 'Connected' : 'Disconnected' }}
+        {{ socketConnected ? 'Connected' : (fallbackInterval ? 'Demo Mode' : 'Disconnected') }}
       </span>
     </div>
 
@@ -176,11 +176,15 @@ export default {
         socket.on('disconnect', () => {
           console.log('Socket disconnected')
           socketConnected.value = false
+          // Start fallback mode when disconnected
+          startFallbackMode()
         })
 
         socket.on('connect_error', (err) => {
           console.error('Socket connection error:', err)
           socketConnected.value = false
+          // Start fallback mode when connection fails
+          startFallbackMode()
         })
 
         // Listen for pose analysis results
@@ -203,6 +207,73 @@ export default {
       } catch (err) {
         console.error('Socket connection failed:', err)
         socketConnected.value = false
+        // Start fallback mode when socket creation fails
+        startFallbackMode()
+      }
+    }
+
+    // Fallback mode with mock landmarks for testing
+    let fallbackInterval = null
+    
+    const startFallbackMode = () => {
+      if (fallbackInterval || socketConnected.value) return
+      
+      console.log('Starting fallback mode with mock landmarks')
+      error.value = 'Backend disconnected - showing demo landmarks'
+      
+      // Generate mock pose landmarks (MediaPipe pose has 33 landmarks)
+      const generateMockLandmarks = () => {
+        const landmarks = []
+        const centerX = 0.5
+        const centerY = 0.5
+        
+        // Generate 33 mock landmarks in a basic human pose structure
+        for (let i = 0; i < 33; i++) {
+          let x = centerX + (Math.random() - 0.5) * 0.3
+          let y = centerY + (Math.random() - 0.5) * 0.6
+          
+          // Adjust specific landmarks for more realistic pose
+          if (i >= 11 && i <= 16) { // Arms
+            x = centerX + (i % 2 === 0 ? -0.2 : 0.2) + (Math.random() - 0.5) * 0.1
+            y = centerY - 0.1 + (Math.random() - 0.5) * 0.2
+          } else if (i >= 23 && i <= 28) { // Legs
+            x = centerX + (i % 2 === 0 ? -0.1 : 0.1) + (Math.random() - 0.5) * 0.1
+            y = centerY + 0.2 + (Math.random() - 0.5) * 0.2
+          }
+          
+          landmarks.push({
+            id: i,
+            x: x * 640, // Assuming 640x480 resolution
+            y: y * 480,
+            x_normalized: x,
+            y_normalized: y,
+            visibility: 0.8 + Math.random() * 0.2
+          })
+        }
+        return landmarks
+      }
+      
+      fallbackInterval = setInterval(() => {
+        if (!isCameraOpen.value) return
+        
+        const mockData = {
+          landmarks: generateMockLandmarks(),
+          exercise_name: 'Demo Mode',
+          accuracy: 75 + Math.random() * 20,
+          correct_form: Math.random() > 0.3,
+          feedback: ['This is demo mode', 'Backend not connected'],
+          image_dimensions: { width: 640, height: 480 }
+        }
+        
+        handlePoseData(mockData)
+      }, 200) // Update every 200ms for smooth animation
+    }
+    
+    const stopFallbackMode = () => {
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval)
+        fallbackInterval = null
+        console.log('Stopped fallback mode')
       }
     }
 
@@ -470,6 +541,7 @@ export default {
 
     const stopCamera = () => {
       stopFrameCapture()
+      stopFallbackMode() // Stop fallback mode when camera stops
       
       if (stream) {
         stream.getTracks().forEach(track => track.stop())
@@ -518,6 +590,7 @@ export default {
 
     onUnmounted(() => {
       stopCamera()
+      stopFallbackMode() // Clean up fallback mode
       if (socket) {
         socket.disconnect()
       }
@@ -534,6 +607,7 @@ export default {
       socketConnected,
       landmarks,
       poseData,
+      fallbackInterval: ref(fallbackInterval),
       toggleCamera,
       selectExercise
     }
