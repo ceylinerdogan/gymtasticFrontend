@@ -489,16 +489,56 @@ export default {
         isLoading.value = true
         error.value = ''
         
-        const constraints = {
-          video: {
-            width: { ideal: window.innerWidth },
-            height: { ideal: window.innerHeight },
-            facingMode: 'user'
+        // Try different camera configurations to avoid zoom issues
+        const cameraConfigs = [
+          // Standard mobile resolution (preferred)
+          {
+            video: {
+              width: { ideal: 1280, max: 1920 },
+              height: { ideal: 720, max: 1080 },
+              facingMode: 'user',
+              aspectRatio: { ideal: 16/9 }
+            },
+            audio: false
           },
-          audio: false
+          // Fallback: Lower resolution
+          {
+            video: {
+              width: { ideal: 640, max: 1280 },
+              height: { ideal: 480, max: 720 },
+              facingMode: 'user',
+              aspectRatio: { ideal: 4/3 }
+            },
+            audio: false
+          },
+          // Last resort: Basic constraints
+          {
+            video: {
+              facingMode: 'user'
+            },
+            audio: false
+          }
+        ]
+        
+        let stream = null
+        let lastError = null
+        
+        // Try each configuration until one works
+        for (const constraints of cameraConfigs) {
+          try {
+            console.log('Trying camera config:', constraints)
+            stream = await navigator.mediaDevices.getUserMedia(constraints)
+            break // Success, exit loop
+          } catch (err) {
+            console.log('Camera config failed:', err.message)
+            lastError = err
+            continue // Try next configuration
+          }
         }
         
-        stream = await navigator.mediaDevices.getUserMedia(constraints)
+        if (!stream) {
+          throw lastError || new Error('All camera configurations failed')
+        }
         
         if (videoElement.value) {
           videoElement.value.srcObject = stream
@@ -506,6 +546,12 @@ export default {
           
           // Wait for video to be ready
           await nextTick()
+          
+          // Log actual video dimensions for debugging
+          const video = videoElement.value
+          video.addEventListener('loadedmetadata', () => {
+            console.log(`Camera resolution: ${video.videoWidth}x${video.videoHeight}`)
+          })
           
           // Initialize canvas context
           if (canvasElement.value) {
@@ -618,10 +664,21 @@ export default {
 <style scoped>
 video {
   object-fit: cover;
+  transform: scaleX(-1); /* Mirror the video for better UX */
 }
 
 canvas {
   object-fit: cover;
+  transform: scaleX(-1); /* Mirror the canvas to match video */
+}
+
+/* Ensure video fills container properly without excessive zoom */
+.relative video,
+.relative canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  object-position: center;
 }
 
 body {
