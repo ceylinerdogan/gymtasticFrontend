@@ -78,6 +78,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_BASE_URL } from '../config/environment.js'
 
 const profile = ref({})
 const editing = ref(false)
@@ -151,7 +152,7 @@ const onFileChange = (e) => {
 const uploadPic = async () => {
   const token = localStorage.getItem('token')
   try {
-    const res = await fetch('http://localhost:5000/api/users/profilepic', {
+    const res = await fetch(`${API_BASE_URL}/api/users/profilepic`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -176,7 +177,7 @@ const updateProfile = async () => {
   editSuccess.value = false
   const token = localStorage.getItem('token')
   try {
-    const res = await fetch('http://localhost:5000/api/users/profile', {
+    const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -212,7 +213,7 @@ onMounted(async () => {
   const token = localStorage.getItem('token')
   if (token) {
     try {
-      const res = await fetch('http://localhost:5000/api/users/profile', {
+      const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (res.ok) {

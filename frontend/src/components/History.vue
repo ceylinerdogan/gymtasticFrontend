@@ -72,6 +72,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { fetchWithAuth } from '../router'
+import { API_BASE_URL } from '../config/environment.js'
 
 const workoutHistory = ref([])
 const loading = ref(true)
@@ -82,7 +83,7 @@ const fetchWorkoutHistory = async () => {
   error.value = ''
   
   try {
-    const response = await fetchWithAuth('http://localhost:5000/api/workouts/history')
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/workouts/history`)
     
     if (response.ok) {
       const data = await response.json()

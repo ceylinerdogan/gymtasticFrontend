@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { API_BASE_URL } from './config/environment.js'
 
 const routes = [
   {
@@ -76,7 +77,7 @@ export async function fetchWithAuth(url, options = {}) {
   let response = await fetch(url, options)
   if (response.status === 401 && localStorage.getItem('refresh_token')) {
     // Try to refresh token
-    const refreshRes = await fetch('http://localhost:5000/api/auth/refresh', {
+    const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: localStorage.getItem('refresh_token') })

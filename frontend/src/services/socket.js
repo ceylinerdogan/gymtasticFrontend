@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { SOCKET_URL } from '../config/environment.js';
 
 class SocketService {
   constructor() {
@@ -14,7 +15,7 @@ class SocketService {
     this.rawLoggingEnabled = false;
   }
 
-  connect(url = 'http://localhost:5000', options = {}) {
+  connect(url = SOCKET_URL, options = {}) {
     if (this.socket) {
       console.log('Socket already exists, disconnecting first');
       this.disconnect();
@@ -113,6 +114,19 @@ class SocketService {
       console.warn('Cannot send frame - socket not connected');
       return false;
     }
+
+    // Frame rate throttling - 10 FPS max
+    const FRAME_INTERVAL = 100; // 100ms = 10 FPS
+    const now = Date.now();
+    
+    if (!this.lastFrameTime) {
+      this.lastFrameTime = 0;
+    }
+    
+    if (now - this.lastFrameTime < FRAME_INTERVAL) {
+      return false; // Skip this frame
+    }
+    this.lastFrameTime = now;
 
     try {
       // Track sent frames for logging

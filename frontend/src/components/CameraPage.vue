@@ -137,6 +137,7 @@
 <script>
 import { ref, onUnmounted, onMounted, nextTick } from 'vue'
 import { io } from 'socket.io-client'
+import { SOCKET_URL } from '../config/environment.js'
 
 export default {
   name: 'CameraControl',
@@ -159,7 +160,7 @@ export default {
     // Socket connection
     const connectSocket = () => {
       try {
-        socket = io('http://localhost:5000', {
+        socket = io(SOCKET_URL, {
           transports: ['websocket'],
           reconnection: true,
           reconnectionAttempts: 5,
@@ -350,7 +351,10 @@ export default {
       })
     }
 
-    // Capture and send video frames (much faster)
+    // Capture and send video frames with throttling (10 FPS max)
+    const FRAME_INTERVAL = 100; // 100ms = 10 FPS
+    let lastFrameTime = 0;
+    
     const startFrameCapture = () => {
       if (!socket || !socketConnected.value || !videoElement.value) {
         return
@@ -364,8 +368,14 @@ export default {
       captureCanvas.width = 320
       captureCanvas.height = 240
       
-      frameInterval = setInterval(() => {
+      const processFrame = () => {
         try {
+          const now = Date.now();
+          if (now - lastFrameTime < FRAME_INTERVAL) {
+            return; // Skip this frame
+          }
+          lastFrameTime = now;
+          
           const video = videoElement.value
           if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
             return
@@ -390,7 +400,10 @@ export default {
         } catch (err) {
           console.error('Error capturing frame:', err)
         }
-      }, 150) // Reduced frequency to 150ms for better performance
+      }
+      
+      // Use a shorter interval but throttle inside the callback
+      frameInterval = setInterval(processFrame, 50) // Check every 50ms but only send at 10 FPS
     }
 
     const stopFrameCapture = () => {

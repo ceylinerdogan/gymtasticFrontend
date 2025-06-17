@@ -107,6 +107,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchWithAuth } from '../router'
+import { API_BASE_URL } from '../config/environment.js'
 
 const userName = ref('[User Name]')
 const router = useRouter()
@@ -125,7 +126,7 @@ const viewHistory = () => {
 
 onMounted(async () => {
   try {
-    const res = await fetchWithAuth('http://localhost:5000/api/users/profile')
+    const res = await fetchWithAuth(`${API_BASE_URL}/api/users/profile`)
     if (res.ok) {
       const data = await res.json()
       userName.value = data.profile?.full_name || '[User Name]'
