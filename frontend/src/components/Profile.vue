@@ -2,8 +2,16 @@
   <div class="min-h-screen bg-gradient-to-b from-purple-400 to-pink-300 pb-20">
     <!-- Profile Header -->
     <div class="pt-8 pb-4 text-center">
-      <div class="w-20 h-20 rounded-full bg-white mx-auto mb-3 flex items-center justify-center border-2 border-white">
-        <span class="text-2xl">{{ getInitials(profile.full_name) }}</span>
+      <div class="w-20 h-20 rounded-full bg-white mx-auto mb-3 flex items-center justify-center border-2 border-white overflow-hidden">
+        <img
+          v-if="profileImageSrc"
+          :src="profileImageSrc"
+          alt="Profile Picture"
+          class="w-full h-full object-cover"
+          @load="onImageLoad"
+          @error="onImageError"
+        />
+        <span v-else class="text-2xl">{{ getInitials(profile.full_name) }}</span>
       </div>
       <h1 class="text-2xl font-bold text-white mb-1">{{ profile.full_name }}</h1>
       <p class="text-white/90">{{ formatGoal(profile.fitness_goal) }}</p>
@@ -339,6 +347,14 @@ const updateProfile = async () => {
   editError.value = ''
   editSuccess.value = false
   const token = localStorage.getItem('token')
+  // Prepare payload
+  const payload = { ...editProfile.value }
+  if (!payload.profile_pic || typeof payload.profile_pic !== 'string') {
+    delete payload.profile_pic
+  }
+  // Remove username from payload (cannot be updated)
+  delete payload.username
+  delete payload.email
   try {
     const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
       method: 'PUT',
@@ -346,7 +362,7 @@ const updateProfile = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(editProfile.value)
+      body: JSON.stringify(payload)
     })
     if (res.ok) {
       const data = await res.json()
@@ -382,12 +398,10 @@ onMounted(async () => {
       if (res.ok) {
         const data = await res.json()
         profile.value = data.profile || {}
-        
         // Process profile image if it exists
         if (profile.value.profilepic) {
           processProfileImage(profile.value.profilepic)
         }
-        
         // Optionally calculate BMI and category
         if (profile.value.height && profile.value.weight) {
           const heightM = profile.value.height > 10 ? profile.value.height / 100 : profile.value.height
@@ -420,4 +434,4 @@ watch(editing, (val) => {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-</style> 
+</style>
