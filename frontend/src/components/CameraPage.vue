@@ -68,6 +68,8 @@
       Selected: {{ selectedExercise.charAt(0).toUpperCase() + selectedExercise.slice(1) }}
     </div>
 
+
+
     <!-- Socket Connection Status -->
     <div class="absolute top-20 left-4 flex items-center space-x-2 z-20">
       <div 
@@ -78,6 +80,75 @@
         {{ socketConnected ? 'Connected' : (fallbackInterval ? 'Demo Mode' : 'Disconnected') }}
       </span>
     </div>
+
+    <!-- Voice Controls Panel (Above Navigation) -->
+    <div class="absolute bottom-20 right-4 flex flex-col items-end space-y-3 z-20">
+      <!-- Voice Toggle Button -->
+      <div class="flex flex-col items-center space-y-2">
+        <button
+          @click="toggleVoice"
+          :class="isVoiceEnabled ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-500 hover:bg-gray-600'"
+          class="w-12 h-12 rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center shadow-lg"
+          :title="isVoiceEnabled ? 'Voice ON' : 'Voice OFF'"
+        >
+          <svg v-if="isVoiceEnabled" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+          </svg>
+          <svg v-else class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+          </svg>
+        </button>
+
+        <!-- Voice Status Indicator -->
+        <div v-if="isPlaying" class="w-12 h-3 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
+          <div class="w-2 h-2 bg-white rounded-full"></div>
+        </div>
+      </div>
+
+      <!-- Voice Settings Panel -->
+      <div v-if="isVoiceEnabled" class="bg-black bg-opacity-80 rounded-lg p-3 min-w-[140px]">
+      <div class="text-white text-xs mb-2 font-semibold">Voice Settings</div>
+      
+      <div class="text-white text-xs mb-1">Volume</div>
+      <input 
+        type="range" 
+        min="0" 
+        max="1" 
+        step="0.1" 
+        :value="voiceSettings.volume"
+        @input="adjustVolume(parseFloat($event.target.value))"
+        class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer mb-2"
+      />
+      
+      <div class="text-white text-xs mb-1">Speech Rate</div>
+      <input 
+        type="range" 
+        min="0.5" 
+        max="2" 
+        step="0.1" 
+        :value="voiceSettings.rate"
+        @input="adjustRate(parseFloat($event.target.value))"
+        class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer mb-3"
+      />
+      
+      <div class="flex flex-col space-y-2">
+        <button 
+          @click="testVoice" 
+          class="w-full text-white text-xs bg-blue-500 hover:bg-blue-600 rounded px-3 py-2 transition-colors"
+        >
+          Test Voice
+        </button>
+        <button 
+          @click="debugVoiceStatus" 
+          class="w-full text-white text-xs bg-orange-500 hover:bg-orange-600 rounded px-3 py-2 transition-colors"
+        >
+          Debug Voice
+        </button>
+      </div>
+    </div>
+    </div>
+
+
 
     <!-- Pose Analysis Results -->
     <div v-if="poseData" class="absolute bottom-20 left-4 bg-black bg-opacity-80 text-white p-4 rounded-xl z-20 max-w-xs shadow-lg border border-white border-opacity-20">
@@ -153,9 +224,10 @@
 </template>
 
 <script>
-import { ref, onUnmounted, onMounted, nextTick } from 'vue'
+import { ref, onUnmounted, onMounted, nextTick, watch } from 'vue'
 import { io } from 'socket.io-client'
 import { SOCKET_URL } from '../config/environment.js'
+import { useVoiceFeedback } from '../composables/useVoiceFeedback.js'
 
 export default {
   name: 'CameraControl',
@@ -169,6 +241,23 @@ export default {
     const socketConnected = ref(false)
     const landmarks = ref([])
     const poseData = ref(null)
+
+    // Voice feedback integration
+    const {
+      isVoiceEnabled,
+      voiceSettings,
+      isPlaying,
+      speak,
+      generatePoseFeedback,
+      generateMotivationalFeedback,
+      speakCountdown,
+      toggleVoice,
+      adjustRate,
+      adjustVolume,
+      stopSpeaking,
+      testVoice,
+      debugVoiceStatus
+    } = useVoiceFeedback()
     
     let stream = null
     let socket = null
@@ -395,8 +484,11 @@ export default {
         const squatPercentage = Math.round(poseState.squatDepth * 100 / 0.15)
         const poseDescription = poseState.isSquatting ? `Squatting ${squatPercentage}%` : 'Standing'
         
+        const generatedLandmarks = generateAccurateLandmarks()
+        console.log('Generated landmarks count:', generatedLandmarks.length)
+        
         const mockData = {
-          landmarks: generateAccurateLandmarks(),
+          landmarks: generatedLandmarks,
           exercise_name: `Squat Demo: ${poseDescription}`,
           accuracy: 85 + Math.sin(poseVariation * 1.2) * 10,
           correct_form: poseState.isSquatting && squatPercentage > 20 && squatPercentage < 80,
@@ -434,12 +526,19 @@ export default {
       try {
         // Store the complete pose data including image dimensions
         if (data.exercise_name || data.poseName || data.pose_name) {
-          poseData.value = {
+          const newPoseData = {
             poseName: data.exercise_name || data.poseName || data.pose_name,
             accuracy: data.accuracy || data.score || 0,
             feedback: data.feedback || [],
             image_dimensions: data.image_dimensions || { width: 1280, height: 720 },
             correct_form: data.correct_form || false
+          }
+          
+          poseData.value = newPoseData
+          
+          // Generate voice feedback for the pose analysis
+          if (isVoiceEnabled.value) {
+            generatePoseFeedback(newPoseData)
           }
         }
         
@@ -465,8 +564,17 @@ export default {
 
     // Optimized pose landmark drawing for better performance
     const drawPoseLandmarks = () => {
-      if (!canvasElement.value || !canvasContext || landmarks.value.length === 0) {
+      if (!canvasElement.value || landmarks.value.length === 0) {
         return
+      }
+
+      // Ensure canvas context is initialized
+      if (!canvasContext) {
+        canvasContext = canvasElement.value.getContext('2d')
+        if (!canvasContext) {
+          console.error('Failed to get canvas context')
+          return
+        }
       }
 
       const canvas = canvasElement.value
@@ -476,6 +584,7 @@ export default {
 
       // Clear canvas efficiently
       canvasContext.clearRect(0, 0, canvas.width, canvas.height)
+      console.log('Drawing landmarks:', landmarks.value.length, 'Canvas size:', canvas.width, 'x', canvas.height)
       
       // Set canvas size to exactly match video display (only if needed)
       const rect = video.getBoundingClientRect()
@@ -520,7 +629,9 @@ export default {
         // Arms (simplified)
         [11, 13], [13, 15], [12, 14], [14, 16],
         // Legs (simplified)
-        [23, 25], [25, 27], [24, 26], [26, 28]
+        [23, 25], [25, 27], [24, 26], [26, 28],
+        // Feet connections
+        [27, 29], [28, 30], [29, 31], [30, 32]
       ]
 
       // Draw all connections in one pass
@@ -543,8 +654,8 @@ export default {
       })
       canvasContext.stroke()
 
-             // Draw more key points for better visibility (shoulders, elbows, hips, knees, ankles)
-       const keyPoints = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
+             // Draw more key points for better visibility (shoulders, elbows, hips, knees, ankles, feet)
+       const keyPoints = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
        keyPoints.forEach(index => {
          const landmark = landmarks.value[index]
          if (landmark && (landmark.visibility || 1) > 0.4) {
@@ -552,7 +663,7 @@ export default {
            const y = landmark.y_normalized * videoHeight
            
            // Larger, more visible points
-           const pointSize = [11, 12, 23, 24].includes(index) ? 8 : 6 // Bigger for main joints
+           const pointSize = [11, 12, 23, 24].includes(index) ? 8 : [27, 28, 29, 30].includes(index) ? 7 : 6 // Bigger for main joints, medium for feet
            
            // Draw main point with glow
            canvasContext.shadowColor = fillColor
@@ -642,6 +753,11 @@ export default {
         isLoading.value = true
         error.value = ''
         
+        // Voice feedback for starting camera
+        if (isVoiceEnabled.value) {
+          speak(`Starting ${selectedExercise.value} detection`, 'high')
+        }
+        
         // Try different camera configurations to avoid zoom issues
         const cameraConfigs = [
           // Standard mobile resolution (preferred)
@@ -706,9 +822,10 @@ export default {
             console.log(`Camera resolution: ${video.videoWidth}x${video.videoHeight}`)
           })
           
-          // Initialize canvas context
+          // Initialize canvas context immediately
           if (canvasElement.value) {
             canvasContext = canvasElement.value.getContext('2d')
+            console.log('Canvas context initialized')
           }
           
           // Connect socket and start frame capture
@@ -716,9 +833,15 @@ export default {
             connectSocket()
           }
           
+          // Start fallback mode immediately if no socket connection
           setTimeout(() => {
-            startFrameCapture()
-          }, 1000) // Wait 1 second for socket connection
+            if (!socketConnected.value) {
+              console.log('Socket not connected, starting fallback mode')
+              startFallbackMode()
+            } else {
+              startFrameCapture()
+            }
+          }, 500) // Shorter delay
         }
       } catch (err) {
         console.error('Error accessing camera:', err)
@@ -742,6 +865,9 @@ export default {
       stopFrameCapture()
       stopFallbackMode() // Stop fallback mode when camera stops
       
+      // Stop any ongoing voice feedback
+      stopSpeaking()
+      
       if (stream) {
         stream.getTracks().forEach(track => track.stop())
         stream = null
@@ -759,6 +885,11 @@ export default {
       if (canvasContext && canvasElement.value) {
         canvasContext.clearRect(0, 0, canvasElement.value.width, canvasElement.value.height)
       }
+      
+              // Voice feedback for stopping camera
+        if (isVoiceEnabled.value) {
+          speak('Workout session ended', 'medium')
+        }
     }
 
     const toggleCamera = () => {
@@ -772,7 +903,14 @@ export default {
     const selectExercise = (exercise) => {
       selectedExercise.value = exercise
       console.log('Selected exercise:', exercise)
+      
+      // Voice feedback for exercise selection
+      if (isVoiceEnabled.value && !isCameraOpen.value) {
+        speak(`${exercise} exercise selected`, 'medium')
+      }
     }
+
+
 
     const handleResize = () => {
       if (isCameraOpen.value && stream) {
@@ -783,8 +921,20 @@ export default {
       }
     }
 
+    // Initialize canvas context
+    const initializeCanvas = () => {
+      if (canvasElement.value && !canvasContext) {
+        canvasContext = canvasElement.value.getContext('2d')
+        console.log('Canvas context initialized on mount')
+      }
+    }
+
     onMounted(() => {
       window.addEventListener('resize', handleResize)
+      // Initialize canvas context when component mounts
+      nextTick(() => {
+        initializeCanvas()
+      })
     })
 
     onUnmounted(() => {
@@ -796,20 +946,48 @@ export default {
       window.removeEventListener('resize', handleResize)
     })
 
-    return {
-      videoElement,
-      canvasElement,
-      isCameraOpen,
-      isLoading,
-      error,
-      selectedExercise,
-      socketConnected,
-      landmarks,
-      poseData,
-      fallbackInterval: ref(fallbackInterval),
-      toggleCamera,
-      selectExercise
-    }
+    // Add motivational feedback based on good form
+    let lastMotivationTime = 0
+    watch(poseData, (newData) => {
+      if (newData && newData.correct_form && newData.accuracy >= 80 && isVoiceEnabled.value) {
+        const now = Date.now()
+        // Give motivational feedback every 10 seconds for good form
+        if (now - lastMotivationTime > 10000) {
+          generateMotivationalFeedback(selectedExercise.value)
+          lastMotivationTime = now
+        }
+      }
+    })
+
+          return {
+        videoElement,
+        canvasElement,
+        isCameraOpen,
+        isLoading,
+        error,
+        selectedExercise,
+        socketConnected,
+        landmarks,
+        poseData,
+        fallbackInterval: ref(fallbackInterval),
+        toggleCamera,
+        selectExercise,
+        
+        // Voice feedback
+        isVoiceEnabled,
+        voiceSettings,
+        isPlaying,
+        speak,
+        generatePoseFeedback,
+        generateMotivationalFeedback,
+        speakCountdown,
+        toggleVoice,
+        adjustRate,
+        adjustVolume,
+        stopSpeaking,
+        testVoice,
+        debugVoiceStatus
+      }
   }
 }
 </script>
@@ -836,5 +1014,71 @@ canvas {
 
 body {
   overflow: hidden;
+}
+
+/* Voice control styles */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: #374151;
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #3B82F6;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-track {
+  background: #374151;
+  height: 4px;
+  border-radius: 2px;
+  border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: #3B82F6;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* Voice status animation */
+@keyframes voice-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+
+
+/* Lock icon animation */
+@keyframes lock-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.lock-icon {
+  animation: lock-pulse 2s infinite;
 }
 </style>
