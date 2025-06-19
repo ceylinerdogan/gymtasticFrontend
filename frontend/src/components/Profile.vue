@@ -90,6 +90,17 @@
           >
             Logout
           </button>
+
+          <!-- Report Issue Button -->
+          <button 
+            @click="showReportModal = true"
+            class="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-medium mt-4 hover:bg-gray-200 transition-colors flex items-center justify-center"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Report Issue
+          </button>
         </div>
       </div>
 
@@ -225,6 +236,77 @@
         </div>
       </div>
     </div>
+
+    <!-- Report Issue Modal -->
+    <div v-if="showReportModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black bg-opacity-50" @click="showReportModal = false"></div>
+      
+      <!-- Modal -->
+      <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+          <h2 class="text-xl font-bold mb-4">Report an Issue</h2>
+          
+          <!-- Report Form -->
+          <form @submit.prevent="submitReport">
+            <!-- Issue Type -->
+            <div class="mb-4">
+              <label class="block text-gray-600 mb-2">Issue Type</label>
+              <select 
+                v-model="reportForm.type"
+                class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                required
+              >
+                <option value="">Select Type</option>
+                <option value="bug">Bug Report</option>
+                <option value="feature">Feature Request</option>
+                <option value="feedback">General Feedback</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+              <label class="block text-gray-600 mb-2">Description</label>
+              <textarea 
+                v-model="reportForm.description"
+                rows="4"
+                class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                placeholder="Please describe the issue in detail..."
+                required
+              ></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex space-x-3">
+              <button 
+                type="button"
+                @click="showReportModal = false"
+                class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                :disabled="isSubmitting"
+              >
+                {{ isSubmitting ? 'Submitting...' : 'Submit Report' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div 
+      v-if="showSuccessToast"
+      class="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform"
+      :class="{ 'translate-y-0 opacity-100': showSuccessToast, 'translate-y-8 opacity-0': !showSuccessToast }"
+    >
+      Report submitted successfully!
+    </div>
   </div>
 </template>
 
@@ -243,6 +325,13 @@ const imageLoaded = ref(false)
 const profileImageSrc = ref('')
 const router = useRouter()
 const fileInput = ref(null)
+const showReportModal = ref(false)
+const showSuccessToast = ref(false)
+const isSubmitting = ref(false)
+const reportForm = ref({
+  type: '',
+  description: ''
+})
 
 const getInitials = (name) => {
   if (!name) return '👤'
@@ -385,6 +474,49 @@ const updateProfile = async () => {
     }
   } catch (e) {
     editError.value = 'Could not connect to server.'
+  }
+}
+
+const submitReport = async () => {
+  try {
+    isSubmitting.value = true
+    
+    // Make API call to submit report
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/reports`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        type: reportForm.value.type,
+        description: reportForm.value.description,
+        user_id: localStorage.getItem('user_id')
+      })
+    })
+
+    if (response.ok) {
+      // Show success message
+      showReportModal.value = false
+      showSuccessToast.value = true
+      
+      // Reset form
+      reportForm.value = {
+        type: '',
+        description: ''
+      }
+
+      // Hide success toast after 3 seconds
+      setTimeout(() => {
+        showSuccessToast.value = false
+      }, 3000)
+    } else {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to submit report')
+    }
+  } catch (error) {
+    alert(error.message)
+  } finally {
+    isSubmitting.value = false
   }
 }
 
