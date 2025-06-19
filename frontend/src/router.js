@@ -33,6 +33,11 @@ const routes = [
     component: () => import('./components/Workouts.vue')
   },
   {
+    path: '/workout-preview/:workoutId',
+    name: 'WorkoutPreview',
+    component: () => import('./components/WorkoutPreview.vue')
+  },
+  {
     path: '/history',
     name: 'History',
     component: () => import('./components/History.vue')

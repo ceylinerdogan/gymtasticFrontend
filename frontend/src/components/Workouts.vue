@@ -55,9 +55,11 @@
         >
           <!-- Workout Image/Banner -->
           <div class="h-32 bg-gradient-to-br from-purple-500 to-pink-500 relative overflow-hidden">
-            <div class="absolute inset-0 flex items-center justify-center">
-              <span class="text-4xl">{{ getWorkoutEmoji(workout.category) }}</span>
-            </div>
+            <img 
+              :src="getWorkoutImage(workout.category)"
+              class="absolute inset-0 w-full h-full object-cover"
+              alt="Workout thumbnail"
+            />
             <div class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/50 to-transparent"></div>
             <div class="absolute bottom-2 left-3 right-3 flex justify-between items-end">
               <div>
@@ -131,13 +133,13 @@ const error = ref('')
 const router = useRouter()
 const filterCategory = ref('All')
 
-const getWorkoutEmoji = (category) => {
-  const emojiMap = {
-    'Cardio': '🏃‍♂️',
-    'Strength': '💪',
-    'General': '🏋️‍♂️'
+const getWorkoutImage = (category) => {
+  const imageMap = {
+    'Cardio': '/combined2.png',
+    'Strength': '/combined.png',
+    'General': '/combined.png'
   }
-  return emojiMap[category] || '🏋️‍♂️'
+  return imageMap[category] || '/combined.png'
 }
 
 const filteredWorkouts = computed(() => {
@@ -156,20 +158,69 @@ const fetchWorkoutTypes = async () => {
     
     if (response.ok) {
       const data = await response.json()
-      workoutTypes.value = data.workout_types || data || []
+      const workouts = (data.workout_types || data || []).map(workout => {
+        if (workout.name.toLowerCase().includes('burn') || workout.name.toLowerCase().includes('fat')) {
+          workout.difficulty = 'Beginner'
+          workout.estimated_duration = 20
+          workout.calories = 150
+          workout.description = "Perfect for beginners! Start your fitness journey with this gentle yet effective workout. Build confidence and strength at your own pace. Every champion was once a beginner!"
+        } else if (workout.name.toLowerCase().includes('cardio')) {
+          workout.difficulty = 'Intermediate'
+          workout.estimated_duration = 35
+          workout.calories = 300
+          workout.description = "Take your fitness to the next level! This high-energy cardio session will boost your endurance and torch calories. Push your limits and feel the burn!"
+        } else if (workout.name.toLowerCase().includes('muscle') || workout.name.toLowerCase().includes('gain')) {
+          workout.difficulty = 'Advanced'
+          workout.estimated_duration = 45
+          workout.calories = 400
+          workout.description = "Ready for a challenge? This intense workout combines strength and endurance to build serious muscle. Transform your body and unleash your full potential!"
+        }
+        return workout
+      })
+      workoutTypes.value = workouts
     } else {
       const errorData = await response.json()
       error.value = errorData.message || 'Failed to load workout types'
     }
   } catch (e) {
     error.value = 'Could not connect to server'
+    // Provide some default workouts for testing
+    workoutTypes.value = [
+      {
+        id: 1,
+        name: 'Burn Your Fat',
+        category: 'Cardio',
+        difficulty: 'Beginner',
+        estimated_duration: 20,
+        calories: 150,
+        description: "Perfect for beginners! Start your fitness journey with this gentle yet effective workout. Build confidence and strength at your own pace. Every champion was once a beginner!"
+      },
+      {
+        id: 2,
+        name: 'Do Cardio!',
+        category: 'Cardio',
+        difficulty: 'Intermediate',
+        estimated_duration: 35,
+        calories: 300,
+        description: "Take your fitness to the next level! This high-energy cardio session will boost your endurance and torch calories. Push your limits and feel the burn!"
+      },
+      {
+        id: 3,
+        name: 'Gain Muscle',
+        category: 'Strength',
+        difficulty: 'Advanced',
+        estimated_duration: 45,
+        calories: 400,
+        description: "Ready for a challenge? This intense workout combines strength and endurance to build serious muscle. Transform your body and unleash your full potential!"
+      }
+    ]
   } finally {
     loading.value = false
   }
 }
 
 const selectWorkout = (workout) => {
-  router.push(`/camera?workout=${workout.id}`)
+  router.push(`/workout-preview/${workout.id}`)
 }
 
 onMounted(() => {

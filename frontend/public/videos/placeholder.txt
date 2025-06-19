@@ -1,0 +1,22 @@
+PLACEHOLDER FILE
+
+Currently, the app is configured to work with these three exercise videos:
+
+1. squat-demo.mp4
+2. plank-demo.mp4  
+3. lunge-demo.mp4
+
+To test the video preview functionality:
+
+1. Place your three exercise videos in this directory
+2. Make sure they are named exactly as shown above
+3. Use MP4 format for best compatibility
+4. Each video should demonstrate proper form for the exercise
+
+For development/testing purposes, you can also:
+- Use stock videos from free sources like Pexels, Pixabay, or Unsplash
+- Create simple animated GIFs and convert them to MP4
+- Use screen recording software to record exercise demonstrations from YouTube
+
+The app will automatically look for these three files when displaying exercise previews.
+All workouts will use combinations of these three exercises based on the workout category. 
