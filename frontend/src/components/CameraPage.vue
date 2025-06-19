@@ -68,8 +68,6 @@
       Selected: {{ selectedExercise.charAt(0).toUpperCase() + selectedExercise.slice(1) }}
     </div>
 
-
-
     <!-- Socket Connection Status -->
     <div class="absolute top-20 left-4 flex items-center space-x-2 z-20">
       <div 
@@ -78,6 +76,14 @@
       ></div>
       <span class="text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
         {{ socketConnected ? 'Connected' : (fallbackInterval ? 'Demo Mode' : 'Disconnected') }}
+      </span>
+    </div>
+
+    <!-- Workout Session Status -->
+    <div v-if="workoutSessionId" class="absolute top-36 left-4 flex items-center space-x-2 z-20">
+      <div class="w-3 h-3 rounded-full bg-purple-500 animate-pulse"></div>
+      <span class="text-white text-sm bg-purple-600 bg-opacity-80 px-2 py-1 rounded">
+        Session Active
       </span>
     </div>
 
@@ -147,8 +153,6 @@
       </div>
     </div>
     </div>
-
-
 
     <!-- Pose Analysis Results -->
     <div v-if="poseData" class="absolute bottom-20 left-4 bg-black bg-opacity-80 text-white p-4 rounded-xl z-20 max-w-xs shadow-lg border border-white border-opacity-20">
@@ -226,8 +230,9 @@
 <script>
 import { ref, onUnmounted, onMounted, nextTick, watch } from 'vue'
 import { io } from 'socket.io-client'
-import { SOCKET_URL } from '../config/environment.js'
+import { SOCKET_URL, API_BASE_URL } from '../config/environment.js'
 import { useVoiceFeedback } from '../composables/useVoiceFeedback.js'
+import { fetchWithAuth } from '../router.js'
 
 export default {
   name: 'CameraControl',
@@ -263,6 +268,33 @@ export default {
     let socket = null
     let frameInterval = null
     let canvasContext = null
+
+    // Add workout session tracking
+    const workoutSessionId = ref(null)
+    const workoutStartTime = ref(null)
+    const exerciseData = ref([])
+    const currentExerciseStartTime = ref(null)
+
+    // Workout type ID mapping
+    const getWorkoutTypeId = (exerciseType) => {
+      const workoutTypeMapping = {
+        'squat': 'eb40b0bb-24f5-4fe8-928c-307e5c1b48d1', // Gain muscle
+        'plank': '61ddc7af-5096-410a-9b50-2bd8fa10744a', // Burn fat  
+        'lunge': 'b2598f55-493c-4dec-909e-0f9b218756b3'  // Cardio
+      }
+      return workoutTypeMapping[exerciseType.toLowerCase()] || workoutTypeMapping['squat'] // Default to gain muscle
+    }
+
+    const getWorkoutTypeName = (exerciseType) => {
+      const workoutNameMapping = {
+        'squat': 'Gain muscle',
+        'plank': 'Burn fat',
+        'lunge': 'Cardio'
+      }
+      return workoutNameMapping[exerciseType.toLowerCase()] || 'Gain muscle'
+    }
+
+
 
     // Socket connection
     const connectSocket = () => {
@@ -536,6 +568,9 @@ export default {
           
           poseData.value = newPoseData
           
+          // Track exercise performance
+          trackExercisePerformance(newPoseData)
+          
           // Generate voice feedback for the pose analysis
           if (isVoiceEnabled.value) {
             generatePoseFeedback(newPoseData)
@@ -748,10 +783,221 @@ export default {
       }
     }
 
+    const startWorkoutSession = async () => {
+      try {
+        workoutStartTime.value = new Date()
+        currentExerciseStartTime.value = new Date()
+        
+        const workoutTypeId = getWorkoutTypeId(selectedExercise.value)
+        const workoutTypeName = getWorkoutTypeName(selectedExercise.value)
+        
+        console.log('🚀 Starting workout session...', {
+          workout_type: workoutTypeName,
+          workout_type_id: workoutTypeId,
+          exercise: selectedExercise.value,
+          start_time: workoutStartTime.value.toISOString(),
+          API_BASE_URL: API_BASE_URL
+        })
+        
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/workouts/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            workout_type: workoutTypeName,
+            workout_type_id: workoutTypeId,
+            start_time: workoutStartTime.value.toISOString()
+          })
+        })
+
+        console.log('📡 API Response status:', response.status, response.statusText)
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log('📊 API Response data:', data)
+          
+          // Try multiple possible field names for session ID
+          const sessionId = data.session_id || data.id || data.workout_session_id || data.sessionId
+          
+          if (sessionId) {
+            workoutSessionId.value = sessionId
+            console.log('✅ Workout session started successfully! ID:', workoutSessionId.value)
+          } else {
+            console.error('❌ No session ID found in response. Available fields:', Object.keys(data))
+            // Fallback: generate a temporary ID
+            workoutSessionId.value = `temp_${Date.now()}`
+            console.log('🔧 Using temporary session ID:', workoutSessionId.value)
+          }
+        } else {
+          const errorText = await response.text()
+          console.error('❌ Failed to start workout session:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText
+          })
+          
+          // If backend is not available, create a temporary session
+          workoutSessionId.value = `offline_${Date.now()}`
+          console.log('🔧 Backend unavailable, using offline session ID:', workoutSessionId.value)
+        }
+      } catch (error) {
+        console.error('❌ Error starting workout session:', error)
+        
+        // Fallback: create a temporary session ID so the workout can still be tracked
+        workoutSessionId.value = `error_${Date.now()}`
+        console.log('🔧 Error occurred, using fallback session ID:', workoutSessionId.value)
+      }
+    }
+
+    const endWorkoutSession = async () => {
+      console.log('🏁 Ending workout session...')
+      console.log('Session ID:', workoutSessionId.value)
+      console.log('Start time:', workoutStartTime.value)
+      
+      if (!workoutSessionId.value || !workoutStartTime.value) {
+        console.log('❌ Cannot end session - missing session ID or start time')
+        return
+      }
+
+      try {
+        const endTime = new Date()
+        const duration = Math.floor((endTime - workoutStartTime.value) / 1000) // in seconds
+
+        const workoutTypeId = getWorkoutTypeId(selectedExercise.value)
+        const workoutTypeName = getWorkoutTypeName(selectedExercise.value)
+        
+        const sessionSummary = {
+          session_id: workoutSessionId.value,
+          workout_type: workoutTypeName,
+          workout_type_id: workoutTypeId,
+          start_time: workoutStartTime.value.toISOString(),
+          end_time: endTime.toISOString(),
+          duration: duration,
+          exercises: exerciseData.value,
+          completed: true
+        }
+        
+        console.log('📋 Session summary:', sessionSummary)
+
+        // Check if this is a temporary/offline session
+        const isTemporarySession = workoutSessionId.value.startsWith('temp_') || 
+                                   workoutSessionId.value.startsWith('offline_') || 
+                                   workoutSessionId.value.startsWith('error_')
+
+        if (isTemporarySession) {
+          // For temporary sessions, try to create a new session instead of updating
+          console.log('🔧 Temporary session detected, creating new session...')
+          
+          const response = await fetchWithAuth(`${API_BASE_URL}/api/workouts/sessions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(sessionSummary)
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            console.log('✅ Temporary session saved successfully:', data)
+          } else {
+            console.error('❌ Failed to save temporary session:', await response.text())
+            // Store in localStorage as fallback
+            const offlineSessions = JSON.parse(localStorage.getItem('offline_sessions') || '[]')
+            offlineSessions.push(sessionSummary)
+            localStorage.setItem('offline_sessions', JSON.stringify(offlineSessions))
+            console.log('💾 Session saved offline for later sync')
+          }
+        } else {
+          // Normal session update
+          const response = await fetchWithAuth(`${API_BASE_URL}/api/workouts/sessions/${workoutSessionId.value}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(sessionSummary)
+          })
+          
+          console.log('📡 Update response:', response.status, response.statusText)
+
+          if (response.ok) {
+            const data = await response.json()
+            console.log('✅ Workout session completed and saved:', data)
+          } else {
+            console.error('❌ Failed to save workout session:', await response.text())
+          }
+        }
+
+        // Voice feedback for session completion
+        if (isVoiceEnabled.value) {
+          const minutes = Math.max(1, Math.floor(duration / 60))
+          speak(`Great job! Your ${selectedExercise.value} session lasted ${minutes} minutes`, 'medium')
+        }
+
+      } catch (error) {
+        console.error('❌ Error ending workout session:', error)
+        
+        // Save to localStorage as fallback
+        try {
+          const workoutTypeId = getWorkoutTypeId(selectedExercise.value)
+          const workoutTypeName = getWorkoutTypeName(selectedExercise.value)
+          
+          const sessionSummary = {
+            session_id: workoutSessionId.value,
+            workout_type: workoutTypeName,
+            workout_type_id: workoutTypeId,
+            start_time: workoutStartTime.value.toISOString(),
+            end_time: new Date().toISOString(),
+            duration: Math.floor((new Date() - workoutStartTime.value) / 1000),
+            exercises: exerciseData.value,
+            completed: true,
+            offline: true
+          }
+          
+          const offlineSessions = JSON.parse(localStorage.getItem('offline_sessions') || '[]')
+          offlineSessions.push(sessionSummary)
+          localStorage.setItem('offline_sessions', JSON.stringify(offlineSessions))
+          console.log('💾 Session saved offline due to error')
+        } catch (storageError) {
+          console.error('❌ Failed to save offline session:', storageError)
+        }
+      } finally {
+        // Reset session data
+        workoutSessionId.value = null
+        workoutStartTime.value = null
+        exerciseData.value = []
+        currentExerciseStartTime.value = null
+        console.log('🔄 Session data reset')
+      }
+    }
+
+    // Track exercise performance
+    const trackExercisePerformance = (poseData) => {
+      if (!workoutSessionId.value || !poseData) return
+
+      const exercisePerformance = {
+        exercise_name: selectedExercise.value,
+        timestamp: new Date().toISOString(),
+        accuracy: poseData.accuracy || 0,
+        correct_form: poseData.correct_form || false,
+        feedback: poseData.feedback || []
+      }
+
+      exerciseData.value.push(exercisePerformance)
+      
+      // Keep only last 100 entries to avoid memory issues
+      if (exerciseData.value.length > 100) {
+        exerciseData.value = exerciseData.value.slice(-100)
+      }
+    }
+
     const startCamera = async () => {
       try {
         isLoading.value = true
         error.value = ''
+        
+        // Start workout session when camera starts
+        await startWorkoutSession()
         
         // Voice feedback for starting camera
         if (isVoiceEnabled.value) {
@@ -865,6 +1111,9 @@ export default {
       stopFrameCapture()
       stopFallbackMode() // Stop fallback mode when camera stops
       
+      // End workout session when camera stops
+      endWorkoutSession()
+      
       // Stop any ongoing voice feedback
       stopSpeaking()
       
@@ -886,10 +1135,10 @@ export default {
         canvasContext.clearRect(0, 0, canvasElement.value.width, canvasElement.value.height)
       }
       
-              // Voice feedback for stopping camera
-        if (isVoiceEnabled.value) {
-          speak('Workout session ended', 'medium')
-        }
+      // Voice feedback for stopping camera
+      if (isVoiceEnabled.value) {
+        speak('Workout session ended', 'medium')
+      }
     }
 
     const toggleCamera = () => {
@@ -909,8 +1158,6 @@ export default {
         speak(`${exercise} exercise selected`, 'medium')
       }
     }
-
-
 
     const handleResize = () => {
       if (isCameraOpen.value && stream) {
@@ -959,35 +1206,36 @@ export default {
       }
     })
 
-          return {
-        videoElement,
-        canvasElement,
-        isCameraOpen,
-        isLoading,
-        error,
-        selectedExercise,
-        socketConnected,
-        landmarks,
-        poseData,
-        fallbackInterval: ref(fallbackInterval),
-        toggleCamera,
-        selectExercise,
-        
-        // Voice feedback
-        isVoiceEnabled,
-        voiceSettings,
-        isPlaying,
-        speak,
-        generatePoseFeedback,
-        generateMotivationalFeedback,
-        speakCountdown,
-        toggleVoice,
-        adjustRate,
-        adjustVolume,
-        stopSpeaking,
-        testVoice,
-        debugVoiceStatus
-      }
+    return {
+      videoElement,
+      canvasElement,
+      isCameraOpen,
+      isLoading,
+      error,
+      selectedExercise,
+      socketConnected,
+      landmarks,
+      poseData,
+      fallbackInterval: ref(fallbackInterval),
+      workoutSessionId,
+      toggleCamera,
+      selectExercise,
+      
+      // Voice feedback
+      isVoiceEnabled,
+      voiceSettings,
+      isPlaying,
+      speak,
+      generatePoseFeedback,
+      generateMotivationalFeedback,
+      speakCountdown,
+      toggleVoice,
+      adjustRate,
+      adjustVolume,
+      stopSpeaking,
+      testVoice,
+      debugVoiceStatus
+    }
   }
 }
 </script>
@@ -1065,8 +1313,6 @@ input[type="range"]::-moz-range-thumb {
     opacity: 0.5;
   }
 }
-
-
 
 /* Lock icon animation */
 @keyframes lock-pulse {

@@ -17,21 +17,11 @@
       <div class="mb-8">
         <div class="bg-white bg-opacity-90 rounded-2xl p-6 shadow-lg">
           <h2 class="text-xl font-bold text-gray-900 mb-4">Today's Overview</h2>
-          <div class="grid grid-cols-3 gap-4 mb-4">
-            <div class="text-center">
-              <div class="text-2xl mb-1">🎯</div>
-              <div class="text-3xl font-bold text-purple-600">{{ stats.weeklyProgress }}%</div>
-              <div class="text-xs text-gray-500">Weekly Goal</div>
-            </div>
+          <div class="grid grid-cols-1 gap-4 mb-4">
             <div class="text-center">
               <div class="text-2xl mb-1">🔥</div>
               <div class="text-3xl font-bold text-pink-500">{{ stats.streak }}</div>
               <div class="text-xs text-gray-500">Day Streak</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl mb-1">⭐</div>
-              <div class="text-3xl font-bold text-indigo-500">{{ stats.points }}</div>
-              <div class="text-xs text-gray-500">Points</div>
             </div>
           </div>
         </div>
