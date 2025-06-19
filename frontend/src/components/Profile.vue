@@ -249,22 +249,6 @@
           
           <!-- Report Form -->
           <form @submit.prevent="submitReport">
-            <!-- Issue Type -->
-            <div class="mb-4">
-              <label class="block text-gray-600 mb-2">Issue Type</label>
-              <select 
-                v-model="reportForm.type"
-                class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                required
-              >
-                <option value="">Select Type</option>
-                <option value="bug">Bug Report</option>
-                <option value="feature">Feature Request</option>
-                <option value="feedback">General Feedback</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
             <!-- Description -->
             <div class="mb-4">
               <label class="block text-gray-600 mb-2">Description</label>
@@ -272,7 +256,7 @@
                 v-model="reportForm.description"
                 rows="4"
                 class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                placeholder="Please describe the issue in detail..."
+                placeholder="Please describe your issue or feedback..."
                 required
               ></textarea>
             </div>
@@ -329,7 +313,6 @@ const showReportModal = ref(false)
 const showSuccessToast = ref(false)
 const isSubmitting = ref(false)
 const reportForm = ref({
-  type: '',
   description: ''
 })
 
@@ -488,7 +471,6 @@ const submitReport = async () => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        type: reportForm.value.type,
         description: reportForm.value.description,
         user_id: localStorage.getItem('user_id')
       })
@@ -501,7 +483,6 @@ const submitReport = async () => {
       
       // Reset form
       reportForm.value = {
-        type: '',
         description: ''
       }
 
