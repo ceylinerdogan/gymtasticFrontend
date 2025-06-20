@@ -11,7 +11,7 @@
     <nav v-if="shouldShowNavigation" class="fixed bottom-0 left-0 right-0 w-full bg-neutral-900 dark:bg-gray-800 dark:bg-gray-800 py-2 flex justify-around items-center rounded-t-xl z-50 shadow-lg transition-colors duration-300 transition-colors duration-300">
       <router-link to="/" class="flex flex-col items-center text-purple-700">
         <span class="material-icons" style="font-size:1.4rem;">🏠</span>
-        <span class="text-sm font-bold text-white mt-0.5">Home pageee</span>
+        <span class="text-sm font-bold text-white mt-0.5">Home</span>
       </router-link>
       <router-link to="/workouts" class="flex flex-col items-center text-purple-700">
         <span class="material-icons" style="font-size:1.4rem;">🏋️‍♂️</span>
@@ -30,17 +30,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import DarkModeToggle from './components/DarkModeToggle.vue'
-import { useDarkMode } from './composables/useDarkMode'
 import DarkModeToggle from './components/DarkModeToggle.vue'
 import { useDarkMode } from './composables/useDarkMode'
 
 const route = useRoute()
-
-// Initialize dark mode
-const { isDarkMode } = useDarkMode()
 
 // Initialize dark mode
 const { isDarkMode } = useDarkMode()
