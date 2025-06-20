@@ -17,8 +17,9 @@ export function useVoiceFeedback() {
   
   // Initialize speech synthesis
   const initVoice = () => {
-    if (!('speechSynthesis' in window)) {
-      console.warn('Speech synthesis not supported')
+    if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
+      console.warn('Speech synthesis not supported on this device')
+      isVoiceEnabled.value = false // Disable voice on unsupported devices
       return false
     }
     
@@ -74,6 +75,12 @@ export function useVoiceFeedback() {
   const speak = (text, priority = 'normal', isRealTimeFeedback = false) => {
     if (!isVoiceEnabled.value || !text) return
     
+    // Check if speech synthesis is available
+    if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
+      console.warn('Speech synthesis not available on this device')
+      return
+    }
+    
     // For real-time pose feedback, reduce repetition delay significantly
     const repetitionDelay = isRealTimeFeedback ? 800 : 3000 // 0.8s for pose feedback, 3s for others
     
@@ -83,49 +90,54 @@ export function useVoiceFeedback() {
       return
     }
     
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = voiceSettings.rate
-    utterance.pitch = voiceSettings.pitch
-    utterance.volume = voiceSettings.volume
-    
-    if (voiceSettings.voice) {
-      utterance.voice = voiceSettings.voice
-    }
-    
-    utterance.onstart = () => {
-      isPlaying.value = true
-      lastSpokenFeedback.value = text
-      lastSpokenTime.value = now
-    }
-    
-    utterance.onend = () => {
-      isPlaying.value = false
-      processQueue()
-    }
-    
-    utterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event.error)
-      isPlaying.value = false
-      processQueue()
-    }
-    
-    // For real-time pose feedback, always interrupt and speak immediately
-    if (isRealTimeFeedback || priority === 'high') {
-      // Stop current speech and speak immediately
-      speechSynthesis.cancel()
-      feedbackQueue.value = []
-      speechSynthesis.speak(utterance)
-    } else if (priority === 'medium' || !isPlaying.value) {
-      // Speak immediately if nothing is playing
-      if (!isPlaying.value) {
-        speechSynthesis.speak(utterance)
-      } else {
-        // Add to front of queue
-        feedbackQueue.value.unshift(utterance)
+    try {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = voiceSettings.rate
+      utterance.pitch = voiceSettings.pitch
+      utterance.volume = voiceSettings.volume
+      
+      if (voiceSettings.voice) {
+        utterance.voice = voiceSettings.voice
       }
-    } else {
-      // Add to end of queue
-      feedbackQueue.value.push(utterance)
+      
+      utterance.onstart = () => {
+        isPlaying.value = true
+        lastSpokenFeedback.value = text
+        lastSpokenTime.value = now
+      }
+      
+      utterance.onend = () => {
+        isPlaying.value = false
+        processQueue()
+      }
+      
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error)
+        isPlaying.value = false
+        processQueue()
+      }
+      
+      // For real-time pose feedback, always interrupt and speak immediately
+      if (isRealTimeFeedback || priority === 'high') {
+        // Stop current speech and speak immediately
+        speechSynthesis.cancel()
+        feedbackQueue.value = []
+        speechSynthesis.speak(utterance)
+      } else if (priority === 'medium' || !isPlaying.value) {
+        // Speak immediately if nothing is playing
+        if (!isPlaying.value) {
+          speechSynthesis.speak(utterance)
+        } else {
+          // Add to front of queue
+          feedbackQueue.value.unshift(utterance)
+        }
+      } else {
+        // Add to end of queue
+        feedbackQueue.value.push(utterance)
+      }
+    } catch (error) {
+      console.error('Speech synthesis error:', error)
+      isPlaying.value = false
     }
   }
   
@@ -141,33 +153,44 @@ export function useVoiceFeedback() {
   const speakImmediatePoseFeedback = (text) => {
     if (!isVoiceEnabled.value || !text) return
     
-    // Always interrupt current speech for immediate pose feedback
-    speechSynthesis.cancel()
-    feedbackQueue.value = []
-    
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = voiceSettings.rate
-    utterance.pitch = voiceSettings.pitch
-    utterance.volume = voiceSettings.volume
-    
-    if (voiceSettings.voice) {
-      utterance.voice = voiceSettings.voice
+    // Check if speech synthesis is available
+    if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
+      console.warn('Speech synthesis not available on this device')
+      return
     }
     
-    utterance.onstart = () => {
-      isPlaying.value = true
-    }
-    
-    utterance.onend = () => {
+    try {
+      // Always interrupt current speech for immediate pose feedback
+      speechSynthesis.cancel()
+      feedbackQueue.value = []
+      
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = voiceSettings.rate
+      utterance.pitch = voiceSettings.pitch
+      utterance.volume = voiceSettings.volume
+      
+      if (voiceSettings.voice) {
+        utterance.voice = voiceSettings.voice
+      }
+      
+      utterance.onstart = () => {
+        isPlaying.value = true
+      }
+      
+      utterance.onend = () => {
+        isPlaying.value = false
+      }
+      
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error)
+        isPlaying.value = false
+      }
+      
+      speechSynthesis.speak(utterance)
+    } catch (error) {
+      console.error('Speech synthesis error:', error)
       isPlaying.value = false
     }
-    
-    utterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event.error)
-      isPlaying.value = false
-    }
-    
-    speechSynthesis.speak(utterance)
   }
 
   // Generate feedback based on pose data

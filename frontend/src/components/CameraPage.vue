@@ -218,6 +218,7 @@ import { io } from 'socket.io-client'
 import { SOCKET_URL, API_BASE_URL } from '../config/environment.js'
 import { useVoiceFeedback } from '../composables/useVoiceFeedback.js'
 import { fetchWithAuth } from '../router.js'
+import { Capacitor } from '@capacitor/core'
 
 export default {
   name: 'CameraControl',
@@ -246,10 +247,11 @@ export default {
       adjustVolume,
       stopSpeaking,
       testVoice,
-      debugVoiceStatus
+      debugVoiceStatus,
+      initVoice
     } = useVoiceFeedback()
     
-    let stream = null
+    let stream = ref(null)
     let socket = null
     let frameInterval = null
     let canvasContext = null
@@ -259,6 +261,18 @@ export default {
     const workoutStartTime = ref(null)
     const exerciseData = ref([])
     const currentExerciseStartTime = ref(null)
+
+    // Platform detection
+    const isMobile = Capacitor.isNativePlatform()
+    const isAndroid = Capacitor.getPlatform() === 'android'
+    const isIOS = Capacitor.getPlatform() === 'ios'
+
+    console.log('Platform info:', {
+      isMobile,
+      isAndroid,
+      isIOS,
+      platform: Capacitor.getPlatform()
+    })
 
     // Workout type ID mapping
     const getWorkoutTypeId = (exerciseType) => {
@@ -279,7 +293,67 @@ export default {
       return workoutNameMapping[exerciseType.toLowerCase()] || 'Gain muscle'
     }
 
+    // Enhanced camera access with mobile-specific handling
+    const requestCameraPermissions = async () => {
+      if (!isMobile) {
+        return true // Skip permission request for web
+      }
 
+      try {
+        // For mobile platforms, check if permissions are available
+        const permissions = await navigator.permissions?.query({ name: 'camera' })
+        
+        if (permissions?.state === 'granted') {
+          console.log('✅ Camera permission already granted')
+          return true
+        } else if (permissions?.state === 'denied') {
+          console.log('❌ Camera permission denied')
+          return false
+        }
+        
+        console.log('🔍 Camera permission state:', permissions?.state || 'unknown')
+        return true // Proceed and let getUserMedia handle the permission request
+      } catch (err) {
+        console.log('⚠️ Permission API not available, proceeding with getUserMedia')
+        return true
+      }
+    }
+
+    // Mobile-optimized camera constraints
+    const getMobileConstraints = () => {
+      const baseConstraints = {
+        audio: false,
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 }
+        }
+      }
+
+      if (isIOS) {
+        // iOS-specific optimizations
+        return {
+          ...baseConstraints,
+          video: {
+            ...baseConstraints.video,
+            aspectRatio: { ideal: 4/3 },
+            frameRate: { ideal: 30, max: 30 }
+          }
+        }
+      } else if (isAndroid) {
+        // Android-specific optimizations
+        return {
+          ...baseConstraints,
+          video: {
+            ...baseConstraints.video,
+            aspectRatio: { ideal: 16/9 },
+            frameRate: { ideal: 24, max: 30 }
+          }
+        }
+      }
+
+      return baseConstraints
+    }
 
     // Socket connection
     const connectSocket = () => {
@@ -981,67 +1055,94 @@ export default {
         isLoading.value = true
         error.value = ''
         
+        console.log('🎥 Starting camera...', { isMobile, isAndroid, isIOS })
+        
+        // Check camera permissions first (especially important for mobile)
+        const hasPermission = await requestCameraPermissions()
+        if (!hasPermission) {
+          throw new Error('Camera permission denied')
+        }
+        
         // Start workout session when camera starts
         await startWorkoutSession()
         
-        // Voice feedback for starting camera
+        // Voice feedback for starting camera (with error handling)
         if (isVoiceEnabled.value) {
-          speak(`Starting ${selectedExercise.value} detection`, 'high')
+          try {
+            speak(`Starting ${selectedExercise.value} detection`, 'high')
+          } catch (voiceError) {
+            console.warn('Voice feedback failed:', voiceError)
+            // Don't let voice errors block camera initialization
+          }
         }
         
-        // Try different camera configurations to avoid zoom issues
+        // Get platform-optimized camera constraints
+        const mobileConstraints = getMobileConstraints()
+        
+        // Enhanced camera configurations with mobile-specific optimizations
         const cameraConfigs = [
-          // Standard mobile resolution (preferred)
+          // Platform-optimized constraints (preferred)
+          mobileConstraints,
+          
+          // Fallback: Minimal constraints for problematic devices
           {
             video: {
-              width: { ideal: 1280, max: 1920 },
-              height: { ideal: 720, max: 1080 },
               facingMode: 'user',
-              aspectRatio: { ideal: 16/9 }
+              width: { ideal: 320, max: 640 },
+              height: { ideal: 240, max: 480 }
             },
             audio: false
           },
-          // Fallback: Lower resolution
-          {
-            video: {
-              width: { ideal: 640, max: 1280 },
-              height: { ideal: 480, max: 720 },
-              facingMode: 'user',
-              aspectRatio: { ideal: 4/3 }
-            },
-            audio: false
-          },
+          
           // Last resort: Basic constraints
           {
             video: {
               facingMode: 'user'
             },
             audio: false
+          },
+          
+          // Emergency fallback: No facing mode specification
+          {
+            video: true,
+            audio: false
           }
         ]
         
-        let stream = null
+        let localStream = null
         let lastError = null
         
         // Try each configuration until one works
-        for (const constraints of cameraConfigs) {
+        for (let i = 0; i < cameraConfigs.length; i++) {
+          const constraints = cameraConfigs[i]
           try {
-            console.log('Trying camera config:', constraints)
-            stream = await navigator.mediaDevices.getUserMedia(constraints)
+            console.log(`🔄 Trying camera config ${i + 1}/${cameraConfigs.length}:`, constraints)
+            
+            // Add timeout for getUserMedia call (mobile devices can hang)
+            const streamPromise = navigator.mediaDevices.getUserMedia(constraints)
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Camera access timeout')), 10000)
+            )
+            
+            localStream = await Promise.race([streamPromise, timeoutPromise])
+            console.log('✅ Camera access successful with config:', i + 1)
             break // Success, exit loop
           } catch (err) {
-            console.log('Camera config failed:', err.message)
+            console.log(`❌ Camera config ${i + 1} failed:`, err.message)
             lastError = err
             continue // Try next configuration
           }
         }
         
-        if (!stream) {
+        if (!localStream) {
           throw lastError || new Error('All camera configurations failed')
         }
         
+        // Store the stream in the reactive ref
+        stream.value = localStream
+        
         if (videoElement.value) {
-          videoElement.value.srcObject = stream
+          videoElement.value.srcObject = localStream
           isCameraOpen.value = true
           
           // Wait for video to be ready
@@ -1079,57 +1180,120 @@ export default {
         let errorMessage = 'Unable to access camera.'
         
         if (err.name === 'NotAllowedError') {
-          errorMessage = 'Camera permission denied. Please allow camera access and try again.'
+          errorMessage = isMobile 
+            ? 'Camera permission denied. Please go to your device settings and allow camera access for this app, then restart the app.'
+            : 'Camera permission denied. Please allow camera access and try again.'
         } else if (err.name === 'NotFoundError') {
           errorMessage = 'No camera found on this device.'
         } else if (err.name === 'NotReadableError') {
-          errorMessage = 'Camera is already in use by another application.'
+          errorMessage = isMobile 
+            ? 'Camera is busy. Please close other camera apps and try again.'
+            : 'Camera is already in use by another application.'
+        } else if (err.name === 'OverconstrainedError') {
+          errorMessage = 'Camera does not support the required settings. Trying fallback mode...'
+          // Try one more time with minimal constraints
+          setTimeout(() => {
+            error.value = ''
+            startCamera()
+          }, 1000)
+          return
+        } else if (err.message.includes('timeout')) {
+          errorMessage = 'Camera access timed out. Please check your device camera permissions and try again.'
+        } else if (isMobile) {
+          errorMessage = `Mobile camera error: ${err.message}. Please ensure camera permissions are granted and try restarting the app.`
         }
         
         error.value = errorMessage
+        
+        // For mobile devices, provide additional troubleshooting info
+        if (isMobile) {
+          console.log('📱 Mobile Troubleshooting:')
+          console.log('1. Check app permissions in device settings')
+          console.log('2. Restart the app completely')
+          console.log('3. Ensure no other apps are using the camera')
+          console.log('4. Try switching to front camera in device settings')
+        }
       } finally {
         isLoading.value = false
       }
     }
 
     const stopCamera = () => {
-      stopFrameCapture()
-      stopFallbackMode() // Stop fallback mode when camera stops
+      console.log('🛑 stopCamera called')
       
-      // End workout session when camera stops
-      endWorkoutSession()
-      
-      // Stop any ongoing voice feedback
-      stopSpeaking()
-      
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-        stream = null
-      }
-      if (videoElement.value) {
-        videoElement.value.srcObject = null
-      }
-      
-      isCameraOpen.value = false
-      error.value = ''
-      landmarks.value = []
-      poseData.value = null
-      
-      // Clear canvas
-      if (canvasContext && canvasElement.value) {
-        canvasContext.clearRect(0, 0, canvasElement.value.width, canvasElement.value.height)
-      }
-      
-      // Voice feedback for stopping camera
-      if (isVoiceEnabled.value) {
-        speak('Workout session ended', 'medium')
+      try {
+        stopFrameCapture()
+        stopFallbackMode() // Stop fallback mode when camera stops
+        
+        // End workout session when camera stops
+        endWorkoutSession()
+        
+        // Stop any ongoing voice feedback
+        stopSpeaking()
+        
+        if (stream.value) {
+          console.log('🛑 Stopping camera stream...')
+          stream.value.getTracks().forEach(track => {
+            console.log('Stopping track:', track.kind, track.readyState)
+            track.stop()
+          })
+          stream.value = null
+          console.log('✅ Camera stream stopped')
+        }
+        
+        if (videoElement.value) {
+          console.log('🛑 Clearing video element...')
+          videoElement.value.srcObject = null
+          videoElement.value.load() // Force reload to clear the video
+        }
+        
+        // Update UI state
+        isCameraOpen.value = false
+        error.value = ''
+        landmarks.value = []
+        poseData.value = null
+        
+        // Clear canvas
+        if (canvasContext && canvasElement.value) {
+          canvasContext.clearRect(0, 0, canvasElement.value.width, canvasElement.value.height)
+          console.log('🛑 Canvas cleared')
+        }
+        
+        // Voice feedback for stopping camera
+        if (isVoiceEnabled.value) {
+          try {
+            speak('Workout session ended', 'medium')
+          } catch (voiceError) {
+            console.warn('Voice feedback failed:', voiceError)
+          }
+        }
+        
+        console.log('✅ Camera stopped successfully')
+      } catch (error) {
+        console.error('❌ Error stopping camera:', error)
+        // Force UI update even if there's an error
+        isCameraOpen.value = false
+        stream.value = null
       }
     }
 
     const toggleCamera = () => {
+      console.log('🔄 Toggle camera clicked. Current state:', { 
+        isCameraOpen: isCameraOpen.value, 
+        hasStream: !!stream.value,
+        isLoading: isLoading.value 
+      })
+      
+      if (isLoading.value) {
+        console.log('⚠️ Camera is still loading, ignoring toggle')
+        return
+      }
+      
       if (isCameraOpen.value) {
+        console.log('🛑 Stopping camera...')
         stopCamera()
       } else {
+        console.log('▶️ Starting camera...')
         startCamera()
       }
     }
@@ -1145,7 +1309,7 @@ export default {
     }
 
     const handleResize = () => {
-      if (isCameraOpen.value && stream) {
+      if (isCameraOpen.value && stream.value) {
         stopCamera()
         setTimeout(() => {
           startCamera()
@@ -1163,6 +1327,15 @@ export default {
 
     onMounted(() => {
       window.addEventListener('resize', handleResize)
+      
+      // Initialize voice system for mobile compatibility
+      try {
+        initVoice()
+      } catch (voiceError) {
+        console.warn('Voice initialization failed:', voiceError)
+        isVoiceEnabled.value = false
+      }
+      
       // Initialize canvas context when component mounts
       nextTick(() => {
         initializeCanvas()

@@ -9,5 +9,13 @@
   },
   "android": {
     "allowMixedContent": true
+  },
+  "plugins": {
+    "Camera": {
+      "permissions": ["camera"]
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }
