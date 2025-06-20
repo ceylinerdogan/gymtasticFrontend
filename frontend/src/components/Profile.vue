@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-purple-400 to-pink-300 pb-20">
+  <div class="min-h-screen bg-gradient-to-b from-purple-400 to-pink-300 dark:from-gray-900 dark:to-gray-800 pb-20 transition-all duration-300">
     <!-- Profile Header -->
     <div class="pt-8 pb-4 text-center">
-      <div class="w-20 h-20 rounded-full bg-white mx-auto mb-3 flex items-center justify-center border-2 border-white overflow-hidden">
+      <div class="w-20 h-20 rounded-full bg-white dark:bg-gray-700 mx-auto mb-3 flex items-center justify-center border-2 border-white dark:border-gray-600 overflow-hidden">
         <img
           v-if="profileImageSrc"
           :src="profileImageSrc"
@@ -11,66 +11,66 @@
           @load="onImageLoad"
           @error="onImageError"
         />
-        <span v-else class="text-2xl">{{ getInitials(profile.full_name) }}</span>
+        <span v-else class="text-2xl text-gray-700 dark:text-gray-300">{{ getInitials(profile.full_name) }}</span>
       </div>
       <h1 class="text-2xl font-bold text-white mb-1">{{ profile.full_name }}</h1>
-      <p class="text-white/90">{{ formatGoal(profile.fitness_goal) }}</p>
+      <p class="text-white/90 dark:text-gray-300">{{ formatGoal(profile.fitness_goal) }}</p>
     </div>
 
     <!-- Main Content -->
     <div class="max-w-md mx-auto px-4">
       <!-- Profile Info View -->
-      <div v-if="!editing" class="bg-white rounded-3xl shadow-lg overflow-hidden mb-4">
+      <div v-if="!editing" class="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden mb-4 transition-colors duration-300">
         <div class="p-6">
           <!-- Personal Information -->
           <div class="mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Personal Information</h2>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Personal Information</h2>
             <div class="space-y-4">
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600">Gender</span>
-                <span class="font-medium">{{ profile.gender }}</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600">Date of Birth</span>
-                <span class="font-medium">{{ formatDate(profile.birth_date) }}</span>
+                              <div class="flex justify-between items-center">
+                  <span class="text-gray-600 dark:text-gray-400">Gender</span>
+                  <span class="font-medium dark:text-white">{{ profile.gender }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600 dark:text-gray-400">Date of Birth</span>
+                  <span class="font-medium dark:text-white">{{ formatDate(profile.birth_date) }}</span>
               </div>
             </div>
           </div>
 
           <!-- Body Metrics -->
           <div class="mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Body Metrics</h2>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Body Metrics</h2>
             <div class="space-y-4">
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">Weight</span>
-                <span class="font-medium">{{ profile.weight }} kg</span>
+                <span class="text-gray-600 dark:text-gray-400">Weight</span>
+                <span class="font-medium dark:text-white">{{ profile.weight }} kg</span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">Height</span>
-                <span class="font-medium">{{ profile.height }} cm</span>
+                <span class="text-gray-600 dark:text-gray-400">Height</span>
+                <span class="font-medium dark:text-white">{{ profile.height }} cm</span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">BMI</span>
-                <span class="font-medium">{{ profile.bmi }}</span>
+                <span class="text-gray-600 dark:text-gray-400">BMI</span>
+                <span class="font-medium dark:text-white">{{ profile.bmi }}</span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">BMI Category</span>
-                <span class="font-medium text-green-500">{{ profile.bmi_category }}</span>
+                <span class="text-gray-600 dark:text-gray-400">BMI Category</span>
+                <span class="font-medium text-green-500 dark:text-green-400">{{ profile.bmi_category }}</span>
               </div>
             </div>
           </div>
 
           <!-- Fitness Goals -->
           <div class="mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Fitness Goals</h2>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Fitness Goals</h2>
             <div class="space-y-4">
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">Goal</span>
-                <span class="font-medium">{{ profile.fitness_goal }}</span>
+                <span class="text-gray-600 dark:text-gray-400">Goal</span>
+                <span class="font-medium dark:text-white">{{ profile.fitness_goal }}</span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">Activity Level</span>
-                <span class="font-medium">{{ profile.activity_level }}</span>
+                <span class="text-gray-600 dark:text-gray-400">Activity Level</span>
+                <span class="font-medium dark:text-white">{{ profile.activity_level }}</span>
               </div>
             </div>
           </div>
@@ -104,8 +104,8 @@
         </div>
       </div>
 
-      <!-- Edit Form -->
-      <div v-else class="bg-white rounded-3xl shadow-lg overflow-hidden">
+                <!-- Edit Form -->
+      <div v-else class="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden transition-colors duration-300">
         <div class="p-6">
           <form @submit.prevent="updateProfile" class="space-y-4">
             <!-- Profile Picture Section -->

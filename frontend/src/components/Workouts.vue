@@ -1,10 +1,10 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-purple-400 to-pink-300 pb-20">
+  <div class="min-h-screen bg-gradient-to-b from-purple-400 to-pink-300 dark:from-gray-900 dark:to-gray-800 pb-20 transition-all duration-300">
     <!-- Header Section -->
-    <div class="bg-white bg-opacity-10 backdrop-blur-md border-b border-white border-opacity-20">
+    <div class="bg-white dark:bg-gray-800 bg-opacity-10 dark:bg-opacity-20 backdrop-blur-md border-b border-white dark:border-gray-600 border-opacity-20">
       <div class="max-w-lg mx-auto px-4 py-6">
-        <h2 class="text-2xl font-bold text-white text-center mb-2">Workout Library</h2>
-        <p class="text-white text-center opacity-90">Choose your perfect workout routine</p>
+        <h2 class="text-2xl font-bold text-white dark:text-gray-100 text-center mb-2">Workout Library</h2>
+        <p class="text-white dark:text-gray-300 text-center opacity-90">Choose your perfect workout routine</p>
         
         <!-- Categories Scroll -->
         <div class="flex space-x-2 overflow-x-auto py-4 scrollbar-hide">
@@ -15,8 +15,8 @@
             :class="[
               'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all',
               filterCategory === category
-                ? 'bg-white text-purple-600'
-                : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
+                ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400'
+                : 'bg-white dark:bg-gray-800 bg-opacity-20 dark:bg-opacity-30 text-white dark:text-gray-300 hover:bg-opacity-30 dark:hover:bg-opacity-50'
             ]"
           >
             {{ category }}
@@ -29,8 +29,8 @@
     <div class="max-w-lg mx-auto px-4 pt-6">
       <!-- Loading State -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
-        <p class="text-white mt-4">Loading your workouts...</p>
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-white dark:border-gray-300 border-t-transparent"></div>
+        <p class="text-white dark:text-gray-300 mt-4">Loading your workouts...</p>
       </div>
 
       <!-- Error State -->
@@ -51,7 +51,7 @@
           v-for="workout in filteredWorkouts" 
           :key="workout.id"
           @click="selectWorkout(workout)"
-          class="group bg-white bg-opacity-95 rounded-xl overflow-hidden shadow-lg cursor-pointer transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]"
+          class="group bg-white dark:bg-gray-800 bg-opacity-95 dark:bg-opacity-95 rounded-xl overflow-hidden shadow-lg cursor-pointer transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]"
         >
           <!-- Workout Image/Banner -->
           <div class="h-32 bg-gradient-to-br from-purple-500 to-pink-500 relative overflow-hidden">
@@ -89,16 +89,16 @@
           
           <!-- Workout Details -->
           <div class="p-4">
-            <p class="text-gray-600 text-sm mb-3">
+            <p class="text-gray-600 dark:text-gray-300 text-sm mb-3">
               {{ workout.description || 'Complete workout routine designed to help you achieve your fitness goals.' }}
             </p>
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
-                <span class="text-xs px-3 py-1 rounded-full bg-purple-100 text-purple-600">
+                <span class="text-xs px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-800 text-purple-600 dark:text-purple-300">
                   {{ workout.category || 'General' }}
                 </span>
               </div>
-              <button class="text-purple-600 font-medium text-sm group-hover:underline">
+              <button class="text-purple-600 dark:text-purple-400 font-medium text-sm group-hover:underline">
                 Start Workout →
               </button>
             </div>
@@ -106,10 +106,10 @@
         </div>
 
         <!-- Empty State -->
-        <div v-if="filteredWorkouts.length === 0 && !loading" class="text-center py-12 bg-white bg-opacity-10 backdrop-blur-sm rounded-xl">
+        <div v-if="filteredWorkouts.length === 0 && !loading" class="text-center py-12 bg-white dark:bg-gray-800 bg-opacity-10 dark:bg-opacity-20 backdrop-blur-sm rounded-xl">
           <div class="text-6xl mb-4">🏋️‍♂️</div>
-          <h3 class="text-xl font-bold text-white mb-2">No Workouts Found</h3>
-          <p class="text-white opacity-80">
+          <h3 class="text-xl font-bold text-white dark:text-gray-200 mb-2">No Workouts Found</h3>
+          <p class="text-white dark:text-gray-300 opacity-80">
             {{ filterCategory === 'All' 
               ? 'Check back later for new workout programs' 
               : `No ${filterCategory.toLowerCase()} workouts available yet` 
