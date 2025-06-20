@@ -975,7 +975,10 @@ export default {
     const trackExercisePerformance = (poseData) => {
       if (!workoutSessionId.value || !poseData) return
 
+      const exerciseId = getWorkoutTypeId(selectedExercise.value)
+      
       const exercisePerformance = {
+        exercise_id: exerciseId,
         exercise_name: selectedExercise.value,
         timestamp: new Date().toISOString(),
         accuracy: poseData.accuracy || 0,
