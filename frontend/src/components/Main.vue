@@ -29,16 +29,83 @@
 
       <!-- Quick Start Workout -->
       <div class="mb-8">
-        <button @click="startWorkout" class="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl py-4 px-6 flex items-center justify-between shadow-lg hover:from-purple-700 hover:to-pink-600 transition-all">
-          <div class="flex items-center">
-            <span class="text-2xl mr-4">🏋️‍♂️</span>
-            <div class="text-left">
-              <div class="font-bold text-lg">Start Workout</div>
-              <div class="text-sm opacity-90">AI-Powered Form Detection</div>
+        <div class="flex gap-3">
+          <!-- Start Workout Button -->
+          <button @click="startWorkout" class="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl py-4 px-6 flex items-center justify-between shadow-lg hover:from-purple-700 hover:to-pink-600 transition-all">
+            <div class="flex items-center">
+              <span class="text-2xl mr-4">🏋️‍♂️</span>
+              <div class="text-left">
+                <div class="font-bold text-lg">Start Workout</div>
+                <div class="text-sm opacity-90">AI-Powered Form Detection</div>
+              </div>
+            </div>
+            <span class="text-2xl">›</span>
+          </button>
+          
+          <!-- Premium Button -->
+          <button @click="showPremiumPopup" class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl py-4 px-4 flex items-center justify-center shadow-lg hover:from-yellow-500 hover:to-orange-600 transition-all">
+            <span class="text-2xl">👑</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Premium Popup Modal -->
+      <div v-if="isPremiumPopupVisible" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click="closePremiumPopup">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md mx-4 p-6 shadow-2xl transform transition-all" @click.stop>
+          <!-- Header -->
+          <div class="text-center mb-6">
+            <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+              <span class="text-3xl">👑</span>
+            </div>
+            <h2 class="text-2xl font-bold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
+              Upgrade to Premium
+            </h2>
+            <p class="text-gray-600 dark:text-gray-300 mt-2">
+              Unlock premium features and take your fitness to the next level!
+            </p>
+          </div>
+
+          <!-- Premium Features -->
+          <div class="space-y-4 mb-6">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-800 dark:to-pink-800 rounded-full flex items-center justify-center">
+                <span class="text-lg">💪</span>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white">3 Additional Exercises</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Access to premium exercise library</p>
+              </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-800 dark:to-pink-800 rounded-full flex items-center justify-center">
+                <span class="text-lg">🎙️</span>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white">Voice Feedback</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Real-time audio coaching and tips</p>
+              </div>
             </div>
           </div>
-          <span class="text-2xl">›</span>
-        </button>
+
+          <!-- Pricing -->
+          <div class="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl p-4 mb-6">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-gray-900 dark:text-white">$9.99<span class="text-lg font-normal text-gray-500 dark:text-gray-400">/month</span></div>
+              <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Cancel anytime</div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="space-y-3">
+            <button class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-semibold py-3 px-6 rounded-xl hover:from-yellow-500 hover:to-orange-600 transition-all transform hover:scale-105">
+              Subscribe Now
+            </button>
+            <button @click="closePremiumPopup" class="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold py-3 px-6 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+              Maybe Later
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Recommended Workouts -->
@@ -124,6 +191,9 @@ const stats = ref({
 const recommendedWorkouts = ref([])
 const weekProgress = ref([])
 
+// Premium popup state
+const isPremiumPopupVisible = ref(false)
+
 // Motivational quotes array
 const motivationalQuotes = [
   {
@@ -182,6 +252,15 @@ const startWorkoutWithId = (workoutId) => {
 // Start default workout
 const startWorkout = () => {
   router.push('/camera')
+}
+
+// Premium popup functions
+const showPremiumPopup = () => {
+  isPremiumPopupVisible.value = true
+}
+
+const closePremiumPopup = () => {
+  isPremiumPopupVisible.value = false
 }
 
 // Fetch user stats
