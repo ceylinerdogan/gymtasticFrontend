@@ -1,7 +1,7 @@
 <template>
   <div class="app-container dark:bg-gray-900 transition-colors duration-300">
     <!-- Dark Mode Toggle -->
-    <div v-if="shouldShowNavigation" class="fixed top-4 right-4 z-50">
+    <div v-if="shouldShowDarkModeToggle" class="fixed top-4 right-4 z-50">
       <DarkModeToggle />
     </div>
     
@@ -43,8 +43,15 @@ const { isDarkMode } = useDarkMode()
 // Pages that should NOT show the navigation bar
 const pagesWithoutNavigation = ['/login', '/register', '/create-profile']
 
+// Pages that should NOT show the dark mode toggle (fullscreen interfaces)
+const pagesWithoutDarkModeToggle = ['/login', '/register', '/create-profile', '/camera']
+
 const shouldShowNavigation = computed(() => {
   return !pagesWithoutNavigation.includes(route.path)
+})
+
+const shouldShowDarkModeToggle = computed(() => {
+  return !pagesWithoutDarkModeToggle.includes(route.path)
 })
 </script>
 

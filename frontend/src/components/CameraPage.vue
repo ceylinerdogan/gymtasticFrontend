@@ -39,7 +39,7 @@
     </div>
 
     <!-- Exercise Selection Buttons -->
-    <div class="absolute top-4 right-4 flex flex-col space-y-2 z-20">
+    <div class="absolute top-4 right-4 flex flex-col space-y-2 z-30">
       <button
         @click="selectExercise('squat')"
         :class="selectedExercise === 'squat' ? 'bg-blue-500 text-white' : 'bg-white bg-opacity-80 text-gray-800'"
@@ -69,7 +69,7 @@
     </div>
 
     <!-- Socket Connection Status -->
-    <div class="absolute top-20 left-4 flex items-center space-x-2 z-20">
+    <div class="absolute top-16 left-4 flex items-center space-x-2 z-20">
       <div 
         :class="socketConnected ? 'bg-green-500' : (fallbackInterval ? 'bg-yellow-500' : 'bg-red-500')"
         class="w-3 h-3 rounded-full"
@@ -80,7 +80,7 @@
     </div>
 
     <!-- Workout Session Status -->
-    <div v-if="workoutSessionId" class="absolute top-36 left-4 flex items-center space-x-2 z-20">
+    <div v-if="workoutSessionId" class="absolute top-28 left-4 flex items-center space-x-2 z-20">
       <div class="w-3 h-3 rounded-full bg-purple-500 animate-pulse"></div>
       <span class="text-white text-sm bg-purple-600 bg-opacity-80 px-2 py-1 rounded">
         Session Active
@@ -88,7 +88,7 @@
     </div>
 
     <!-- Voice Controls Panel (Above Navigation) -->
-    <div class="absolute bottom-20 right-4 flex flex-col items-end space-y-3 z-20">
+    <div class="absolute bottom-20 right-4 flex flex-col items-end space-y-3 z-30">
       <!-- Voice Toggle Button -->
       <div class="flex flex-col items-center space-y-2">
         <button
@@ -136,21 +136,6 @@
         @input="adjustRate(parseFloat($event.target.value))"
         class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer mb-3"
       />
-      
-      <div class="flex flex-col space-y-2">
-        <button 
-          @click="testVoice" 
-          class="w-full text-white text-xs bg-blue-500 hover:bg-blue-600 rounded px-3 py-2 transition-colors"
-        >
-          Test Voice
-        </button>
-        <button 
-          @click="debugVoiceStatus" 
-          class="w-full text-white text-xs bg-orange-500 hover:bg-orange-600 rounded px-3 py-2 transition-colors"
-        >
-          Debug Voice
-        </button>
-      </div>
     </div>
     </div>
 
@@ -205,7 +190,7 @@
     <button
       @click="toggleCamera"
       :disabled="isLoading"
-      class="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full text-white font-bold shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed z-10"
+      class="absolute top-40 right-4 w-14 h-14 rounded-full text-white font-bold shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed z-30 border-2 border-white border-opacity-20"
       :class="isCameraOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'"
     >
       <!-- Loading Spinner -->
@@ -233,9 +218,13 @@ import { io } from 'socket.io-client'
 import { SOCKET_URL, API_BASE_URL } from '../config/environment.js'
 import { useVoiceFeedback } from '../composables/useVoiceFeedback.js'
 import { fetchWithAuth } from '../router.js'
+import DarkModeToggle from './DarkModeToggle.vue'
 
 export default {
   name: 'CameraControl',
+  components: {
+    DarkModeToggle
+  },
   setup() {
     const videoElement = ref(null)
     const canvasElement = ref(null)
