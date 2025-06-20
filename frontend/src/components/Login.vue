@@ -1,26 +1,31 @@
 <template>
-  <div class="min-h-screen flex flex-col justify-center items-center bg-purple-400">
-    <div class="w-[90%] max-w-[360px] bg-white rounded-[32px] px-6 py-8">
+  <div class="min-h-screen flex flex-col justify-center items-center bg-purple-400 dark:bg-gray-900 transition-colors duration-300">
+    <!-- Dark Mode Toggle for Login/Register -->
+    <div class="absolute top-4 right-4">
+      <DarkModeToggle />
+    </div>
+    
+    <div class="w-[90%] max-w-[360px] bg-white dark:bg-gray-800 rounded-[32px] px-6 py-8 transition-colors duration-300">
       <div class="flex flex-col items-center mb-6">
         <div class="w-14 h-14 mb-3">
           <img src="/gymtastic.jpg" alt="GymTastic Logo" class="w-full h-full object-contain" />
         </div>
-        <h1 class="text-xl font-bold text-gray-800 mb-0.5">GymTastic</h1>
-        <h2 class="text-gray-500 text-sm">Login</h2>
+        <h1 class="text-xl font-bold text-gray-800 dark:text-white mb-0.5">GymTastic</h1>
+        <h2 class="text-gray-500 dark:text-gray-400 text-sm">Login</h2>
       </div>
 
       <form @submit.prevent="loginUser" class="space-y-4">
         <!-- Username Input -->
         <div class="space-y-1">
-          <label class="block text-sm text-gray-600">Username</label>
+          <label class="block text-sm text-gray-600 dark:text-gray-400">Username</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <span class="text-purple-600">👤</span>
+              <span class="text-purple-600 dark:text-purple-400">👤</span>
             </div>
             <input 
               v-model="form.username" 
               type="text" 
-              class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-sm" 
+              class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-sm" 
               required 
             />
           </div>
@@ -28,15 +33,15 @@
 
         <!-- Password Input -->
         <div class="space-y-1">
-          <label class="block text-sm text-gray-600">Password</label>
+          <label class="block text-sm text-gray-600 dark:text-gray-400">Password</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <span class="text-purple-600">🔒</span>
+              <span class="text-purple-600 dark:text-purple-400">🔒</span>
             </div>
             <input 
               v-model="form.password" 
               :type="showPassword ? 'text' : 'password'" 
-              class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-sm" 
+              class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-sm" 
               required 
             />
             <button 
@@ -44,7 +49,7 @@
               @click="showPassword = !showPassword"
               class="absolute inset-y-0 right-3 flex items-center"
             >
-              <span class="text-purple-600">{{ showPassword ? '👁️' : '👁️‍🗨️' }}</span>
+              <span class="text-purple-600 dark:text-purple-400">{{ showPassword ? '👁️' : '👁️‍🗨️' }}</span>
             </button>
           </div>
         </div>
@@ -82,9 +87,9 @@
         </button>
 
         <!-- Register Link -->
-        <div class="text-center text-sm text-gray-600">
+        <div class="text-center text-sm text-gray-600 dark:text-gray-400">
           Don't have an account? 
-          <router-link to="/register" class="text-purple-600 font-medium">
+          <router-link to="/register" class="text-purple-600 dark:text-purple-400 font-medium">
             Register
           </router-link>
         </div>
@@ -97,6 +102,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { API_BASE_URL } from '../config/environment.js'
+import DarkModeToggle from './DarkModeToggle.vue'
 
 const form = ref({
   username: '',
