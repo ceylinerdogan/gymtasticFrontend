@@ -19,49 +19,41 @@
     </div>
 
     <!-- History List -->
-    <div v-else class="space-y-4 px-2">
+    <div v-else class="space-y-6 px-2">
       <div 
         v-for="session in workoutHistory" 
         :key="session.id"
-        class="bg-white bg-opacity-20 rounded-xl p-4 backdrop-blur-sm border border-white border-opacity-30"
+        class="group bg-white bg-opacity-80 rounded-2xl shadow-xl border border-white border-opacity-40 p-5 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:scale-[1.01]"
       >
-        <div class="mb-3">
-          <h3 class="text-lg font-bold text-white">{{ session.workout_type || session.workout_name || 'Workout Session' }}</h3>
-          <p class="text-white opacity-70 text-sm">{{ formatDate(session.date || session.start_time || session.created_at) }}</p>
+        <!-- Icon/Avatar -->
+        <div class="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-3xl font-bold"
+             :class="getWorkoutIconBg(session.workout_type || session.workout_name)">
+          <span>{{ getWorkoutIcon(session.workout_type || session.workout_name) }}</span>
         </div>
-        
-        <div class="bg-white bg-opacity-10 rounded-lg p-3 text-sm">
-          <div class="text-white opacity-70 text-xs uppercase tracking-wide mb-1">Duration</div>
-          <div class="text-white font-bold">{{ formatDuration(session.duration) }}</div>
-        </div>
-
-        <!-- Exercise Performance (if available) -->
-        <div v-if="session.exercises && session.exercises.length > 0" class="mt-3 pt-3 border-t border-white border-opacity-20">
-          <div class="text-white opacity-70 text-xs uppercase tracking-wide mb-2">Exercises Completed</div>
-          <div class="flex flex-wrap gap-2">
-            <span 
-              v-for="exercise in session.exercises.slice(0, 3)" 
-              :key="exercise.id"
-              class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full"
-            >
-              {{ exercise.name }}
+        <!-- Details -->
+        <div class="flex-1 min-w-0 flex flex-col justify-center">
+          <div class="flex items-center justify-between gap-4 w-full">
+            <h3 class="text-lg font-bold text-gray-900">{{ session.workout_type || session.workout_name || 'Workout Session' }}</h3>
+            <span class="flex flex-col items-end text-base text-gray-700 font-semibold min-w-[100px]">
+              <span>{{ formatDateOnly(session.date || session.start_time || session.created_at) }}</span>
+              <span>{{ formatTimeOnly(session.date || session.start_time || session.created_at) }}</span>
             </span>
-            <span 
-              v-if="session.exercises.length > 3"
-              class="bg-gray-600 text-white text-xs px-2 py-1 rounded-full"
-            >
-              +{{ session.exercises.length - 3 }} more
-            </span>
+          </div>
+          <div class="flex items-center gap-3 mt-2">
+            <div class="flex items-center text-purple-700 font-semibold text-sm bg-purple-100 rounded px-2 py-1">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {{ formatDuration(session.duration) }}
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Empty State -->
-      <div v-if="workoutHistory.length === 0 && !loading" class="text-center py-12">
-        <div class="text-6xl mb-4">📊</div>
-        <h3 class="text-xl font-bold text-white mb-2">No Workout History</h3>
-        <p class="text-white opacity-80 mb-4">Start your first workout to see your progress here</p>
-        <button @click="$router.push('/')" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold">
+      <div v-if="workoutHistory.length === 0 && !loading" class="text-center py-16">
+        <div class="text-7xl mb-4">📈</div>
+        <h3 class="text-2xl font-bold text-white mb-2">No Workout History</h3>
+        <p class="text-white opacity-80 mb-6">Start your first workout to see your progress here!</p>
+        <button @click="$router.push('/workouts')" class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all">
           Start Workout
         </button>
       </div>
@@ -113,67 +105,62 @@ const formatDate = (dateString) => {
 
 const formatDuration = (duration) => {
   if (!duration) return 'N/A'
-  
-  // If duration is in seconds
   if (typeof duration === 'number') {
     const minutes = Math.floor(duration / 60)
     const seconds = duration % 60
     return `${minutes}m ${seconds}s`
   }
-  
-  // If duration is already formatted or in minutes
   if (typeof duration === 'string') {
     return duration.includes('min') ? duration : `${duration} min`
   }
-  
   return duration.toString()
 }
 
-const getStatusClass = (completed, status) => {
-  // Handle boolean completed field first
-  if (typeof completed === 'boolean') {
-    return completed ? 'bg-green-500 text-white' : 'bg-yellow-500 text-black'
-  }
-  
-  // Handle string status field
-  switch (status?.toLowerCase()) {
-    case 'completed':
-      return 'bg-green-500 text-white'
-    case 'in_progress':
-      return 'bg-yellow-500 text-black'
-    case 'paused':
-      return 'bg-orange-500 text-white'
-    case 'cancelled':
-    case 'stopped':
-      return 'bg-red-500 text-white'
-    default:
-      return 'bg-gray-500 text-white'
-  }
+const formatDateOnly = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
 }
 
-const getStatusText = (completed, status) => {
-  // Handle boolean completed field first
-  if (typeof completed === 'boolean') {
-    return completed ? 'Completed' : 'In Progress'
-  }
-  
-  // Handle string status field
-  switch (status?.toLowerCase()) {
-    case 'completed':
-      return 'Completed'
-    case 'in_progress':
-      return 'In Progress'
-    case 'paused':
-      return 'Paused'
-    case 'cancelled':
-    case 'stopped':
-      return 'Stopped'
-    default:
-      return 'Unknown'
-  }
+const formatTimeOnly = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// Icon and color helpers
+const getWorkoutIcon = (name) => {
+  if (!name) return '🏋️‍♂️'
+  const n = name.toLowerCase()
+  if (n.includes('cardio')) return '🏃‍♂️'
+  if (n.includes('muscle') || n.includes('strength')) return '💪'
+  if (n.includes('fat') || n.includes('burn')) return '🔥'
+  return '🏋️‍♂️'
+}
+const getWorkoutIconBg = (name) => {
+  if (!name) return 'bg-purple-200 text-purple-700'
+  const n = name.toLowerCase()
+  if (n.includes('cardio')) return 'bg-pink-200 text-pink-700'
+  if (n.includes('muscle') || n.includes('strength')) return 'bg-yellow-200 text-yellow-700'
+  if (n.includes('fat') || n.includes('burn')) return 'bg-orange-200 text-orange-700'
+  return 'bg-purple-200 text-purple-700'
 }
 
 onMounted(() => {
   fetchWorkoutHistory()
 })
-</script> 
+</script>
+
+<style scoped>
+.group:hover {
+  box-shadow: 0 8px 32px 0 rgba(80, 0, 120, 0.18);
+  background: rgba(255,255,255,0.92);
+}
+</style> 
