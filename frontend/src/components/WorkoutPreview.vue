@@ -81,14 +81,12 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
-import DarkModeToggle from './DarkModeToggle.vue'
-import { useDarkMode } from '../composables/useDarkMode.js'
+
 
 const router = useRouter()
 const route = useRoute()
 
-// Initialize dark mode
-const { isDarkMode, toggleDarkMode } = useDarkMode()
+
 
 const goBack = () => {
   router.back()

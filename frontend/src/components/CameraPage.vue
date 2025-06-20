@@ -218,13 +218,9 @@ import { io } from 'socket.io-client'
 import { SOCKET_URL, API_BASE_URL } from '../config/environment.js'
 import { useVoiceFeedback } from '../composables/useVoiceFeedback.js'
 import { fetchWithAuth } from '../router.js'
-import DarkModeToggle from './DarkModeToggle.vue'
 
 export default {
   name: 'CameraControl',
-  components: {
-    DarkModeToggle
-  },
   setup() {
     const videoElement = ref(null)
     const canvasElement = ref(null)

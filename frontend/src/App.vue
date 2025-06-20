@@ -1,7 +1,7 @@
 <template>
   <div class="app-container dark:bg-gray-900 transition-colors duration-300">
     <!-- Dark Mode Toggle -->
-    <div v-if="shouldShowNavigation" class="fixed top-4 right-4 z-50">
+    <div v-if="shouldShowNavigation && shouldShowDarkModeToggle" class="fixed top-4 right-4 z-50">
       <DarkModeToggle />
     </div>
     
