@@ -26,7 +26,7 @@
           <h3 class="p-4 text-lg font-bold text-gray-900 dark:text-gray-100">Squat</h3>
           <video
             src="/videos/squat-demo.mp4"
-            class="w-full h-48 object-cover"
+            class="w-full h-85 object-cover"
             controls
             preload="metadata"
           >
@@ -39,7 +39,7 @@
           <h3 class="p-4 text-lg font-bold text-gray-900 dark:text-gray-100">Plank</h3>
           <video
             src="/videos/plank-demo.mp4"
-            class="w-full h-48 object-cover"
+            class="w-full h-85 object-cover"
             controls
             preload="metadata"
           >
@@ -52,7 +52,7 @@
           <h3 class="p-4 text-lg font-bold text-gray-900 dark:text-gray-100">Lunge</h3>
           <video
             src="/videos/lunge-demo.mp4"
-            class="w-full h-48 object-cover"
+            class="w-full h-85 object-cover"
             controls
             preload="metadata"
           >
@@ -98,11 +98,15 @@ const startWorkout = () => {
 </script>
 
 <style scoped>
+video {
+  filter: brightness(1.5) contrast(1.05);
+}
+
 video::-webkit-media-controls {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.3);
 }
 
 video::-webkit-media-controls-panel {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.3);
 }
 </style> 
