@@ -1325,12 +1325,13 @@ export default {
       }
     }
 
-    onMounted(() => {
+    onMounted(async () => {
       window.addEventListener('resize', handleResize)
       
       // Initialize voice system for mobile compatibility
       try {
-        initVoice()
+        await initVoice()
+        console.log('🔊 Voice system initialized successfully')
       } catch (voiceError) {
         console.warn('Voice initialization failed:', voiceError)
         isVoiceEnabled.value = false
