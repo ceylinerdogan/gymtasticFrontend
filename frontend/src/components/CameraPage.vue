@@ -572,21 +572,53 @@ export default {
       const animateFrame = () => {
         if (!isCameraOpen.value) return
         
-        const squatPercentage = Math.round(poseState.squatDepth * 100 / 0.15)
-        const poseDescription = poseState.isSquatting ? `Squatting ${squatPercentage}%` : 'Standing'
+        // Generate exercise-specific demo data
+        const currentExercise = selectedExercise.value || 'squat'
+        const exerciseName = currentExercise.charAt(0).toUpperCase() + currentExercise.slice(1)
+        
+        // Exercise-specific demo behavior
+        let poseDescription, isExercising, exerciseMetric, movementFeedback
+        
+        if (currentExercise === 'squat') {
+          const squatPercentage = Math.round(poseState.squatDepth * 100 / 0.15)
+          poseDescription = poseState.isSquatting ? `Squatting ${squatPercentage}%` : 'Standing'
+          isExercising = poseState.isSquatting && squatPercentage > 20 && squatPercentage < 80
+          exerciseMetric = `Squat depth: ${squatPercentage}%`
+          movementFeedback = poseState.isSquatting ? '✓ Squatting detected' : 'Standing position'
+        } else if (currentExercise === 'plank') {
+          const holdTime = Math.round((poseVariation * 10) % 30) + 5 // 5-35 seconds
+          const isHolding = Math.sin(poseVariation * 0.3) > -0.3 // Holding 80% of time
+          poseDescription = isHolding ? `Holding ${holdTime}s` : 'Preparing'
+          isExercising = isHolding && holdTime > 10
+          exerciseMetric = `Hold time: ${holdTime}s`
+          movementFeedback = isHolding ? '✓ Plank position held' : 'Get into plank position'
+        } else if (currentExercise === 'lunge') {
+          const lungeDepth = Math.round((Math.sin(poseVariation * 0.6) * 0.5 + 0.5) * 80) // 0-80% depth
+          const isLunging = Math.sin(poseVariation * 0.6) > -0.2 // Lunging 70% of time
+          poseDescription = isLunging ? `Lunging ${lungeDepth}%` : 'Standing'
+          isExercising = isLunging && lungeDepth > 30 && lungeDepth < 70
+          exerciseMetric = `Lunge depth: ${lungeDepth}%`
+          movementFeedback = isLunging ? '✓ Lunge detected' : 'Step into lunge'
+        } else {
+          // Fallback for any other exercise
+          poseDescription = 'Training'
+          isExercising = true
+          exerciseMetric = 'Form tracking active'
+          movementFeedback = '✓ Exercise detected'
+        }
         
         const generatedLandmarks = generateAccurateLandmarks()
         console.log('Generated landmarks count:', generatedLandmarks.length)
         
         const mockData = {
           landmarks: generatedLandmarks,
-          exercise_name: `Squat Demo: ${poseDescription}`,
-          accuracy: 85 + Math.sin(poseVariation * 1.2) * 10,
-          correct_form: poseState.isSquatting && squatPercentage > 20 && squatPercentage < 80,
+          exercise_name: `${exerciseName} Demo: ${poseDescription}`,
+          accuracy: null, // No fake accuracy - should come from backend only
+          correct_form: null, // No fake form assessment
           feedback: [
-            'Enhanced body tracking',
-            `Squat depth: ${squatPercentage}%`,
-            poseState.isSquatting ? '✓ Squatting detected' : 'Standing position'
+            'Demo mode - Waiting for pose analysis',
+            'Connect to backend for real accuracy',
+            exerciseMetric
           ],
           image_dimensions: { width: 640, height: 480 }
         }
@@ -690,19 +722,23 @@ export default {
       }
       
       // Get current accuracy for color coding
-      const accuracy = poseData.value?.accuracy || 0
+      const accuracy = poseData.value?.accuracy
       const correctForm = poseData.value?.correct_form || false
       
-      // Simplified color selection (faster)
+      // Color coding based on pose detection accuracy
       let strokeColor, fillColor
-      if (correctForm && accuracy >= 85) {
-        strokeColor = fillColor = '#00ff41'
-      } else if (accuracy >= 70) {
+      if (accuracy === null || accuracy === undefined) {
+        // Demo mode - neutral gray color (no fake accuracy)
+        strokeColor = fillColor = '#808080'
+      } else if (accuracy > 90) {
+        // Green for accuracy > 90%
+        strokeColor = fillColor = '#00ff00'
+      } else if (accuracy >= 60) {
+        // Yellow for accuracy 60-90%
         strokeColor = fillColor = '#ffff00'
-      } else if (accuracy >= 50) {
-        strokeColor = fillColor = '#ff8c00'
       } else {
-        strokeColor = fillColor = '#ff0040'
+        // Red for accuracy 0-60%
+        strokeColor = fillColor = '#ff0000'
       }
       
       // Pre-calculate video dimensions
@@ -1352,12 +1388,12 @@ export default {
       window.removeEventListener('resize', handleResize)
     })
 
-    // Add motivational feedback based on good form
+    // Add motivational feedback based on excellent performance
     let lastMotivationTime = 0
     watch(poseData, (newData) => {
-      if (newData && newData.correct_form && newData.accuracy >= 80 && isVoiceEnabled.value) {
+      if (newData && newData.accuracy > 90 && isVoiceEnabled.value) {
         const now = Date.now()
-        // Give motivational feedback every 10 seconds for good form
+        // Give motivational feedback every 10 seconds for excellent performance (>90% accuracy)
         if (now - lastMotivationTime > 10000) {
           generateMotivationalFeedback(selectedExercise.value)
           lastMotivationTime = now

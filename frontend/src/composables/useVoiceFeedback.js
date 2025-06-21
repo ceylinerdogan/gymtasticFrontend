@@ -101,24 +101,27 @@ export function useVoiceFeedback() {
   }
   
   // Smart repetition filter for real-time feedback
-  const shouldSkipSpeech = (text, isRealTimeFeedback) => {
+  const shouldSkipSpeech = (text, isRealTimeFeedback, currentAccuracy = 0) => {
     const now = Date.now()
     
     if (isRealTimeFeedback) {
-      // For real-time feedback, only skip if exact same message within 2 seconds
-      return lastSpokenFeedback.value === text && now - lastSpokenTime.value < 2000
+      // For pose feedback, check if accuracy changed significantly (>10% change)
+      const accuracyChanged = Math.abs(currentAccuracy - lastSpokenAccuracy.value) > 10
+      
+      // Allow immediate feedback if accuracy changed significantly or enough time passed
+      return !accuracyChanged && lastSpokenFeedback.value === text && now - lastSpokenTime.value < 1500
     } else {
       // For non-real-time feedback, longer delay
       return lastSpokenFeedback.value === text && now - lastSpokenTime.value < 4000
     }
   }
   
-  // Mobile TTS with smooth real-time feedback
-  const speakMobile = async (text, isRealTimeFeedback = false, priority = 'normal') => {
+  // Mobile TTS with real-time pose feedback
+  const speakMobile = async (text, isRealTimeFeedback = false, priority = 'normal', currentAccuracy = 0) => {
     if (!isVoiceEnabled.value || !text) return
     
     // Smart filtering to avoid repetition but allow real-time flow
-    if (shouldSkipSpeech(text, isRealTimeFeedback)) {
+    if (shouldSkipSpeech(text, isRealTimeFeedback, currentAccuracy)) {
       console.log('🔊 Skipping repetitive speech')
       return
     }
@@ -129,9 +132,9 @@ export function useVoiceFeedback() {
       const speechId = Date.now().toString()
       currentSpeechId.value = speechId
       
-      // For real-time feedback, use ADD strategy to queue naturally
-      // For other speech, use FLUSH only if it's truly urgent
-      const queueStrategy = (priority === 'urgent') ? 0 : 1 // 0=flush, 1=add
+      // For real-time pose feedback, always interrupt current speech
+      // For other speech, use ADD strategy to queue naturally
+      const queueStrategy = (isRealTimeFeedback || priority === 'urgent') ? 0 : 1 // 0=flush, 1=add
       
       lastSpokenFeedback.value = text
       lastSpokenTime.value = Date.now()
@@ -159,11 +162,11 @@ export function useVoiceFeedback() {
     }
   }
   
-  // Web TTS with smooth handling
-  const speakWeb = (text, isRealTimeFeedback = false, priority = 'normal') => {
+  // Web TTS with real-time pose feedback
+  const speakWeb = (text, isRealTimeFeedback = false, priority = 'normal', currentAccuracy = 0) => {
     if (!isVoiceEnabled.value || !text) return
     
-    if (shouldSkipSpeech(text, isRealTimeFeedback)) {
+    if (shouldSkipSpeech(text, isRealTimeFeedback, currentAccuracy)) {
       return
     }
     
@@ -199,8 +202,8 @@ export function useVoiceFeedback() {
         processWebQueue()
       }
       
-      // For urgent priority, clear queue and speak immediately
-      if (priority === 'urgent') {
+      // For real-time pose feedback or urgent priority, interrupt current speech
+      if (isRealTimeFeedback || priority === 'urgent') {
         speechSynthesis.cancel()
         feedbackQueue.value = []
         speechSynthesis.speak(utterance)
@@ -208,7 +211,7 @@ export function useVoiceFeedback() {
         // Speak immediately if nothing is playing
         speechSynthesis.speak(utterance)
       } else {
-        // Add to queue for smooth flow
+        // Add to queue for smooth flow (non-pose feedback only)
         feedbackQueue.value.push(utterance)
       }
     } catch (error) {
@@ -227,27 +230,27 @@ export function useVoiceFeedback() {
     }
   }
   
-  // Main speak function with improved real-time handling
-  const speak = async (text, priority = 'normal', isRealTimeFeedback = false) => {
+  // Main speak function with real-time pose feedback
+  const speak = async (text, priority = 'normal', isRealTimeFeedback = false, currentAccuracy = 0) => {
     if (!isVoiceEnabled.value || !text) return
     
     console.log('🔊 Speak request:', text.substring(0, 25) + '...', 'Priority:', priority, 'RealTime:', isRealTimeFeedback)
     
     if (isMobile) {
-      await speakMobile(text, isRealTimeFeedback, priority)
+      await speakMobile(text, isRealTimeFeedback, priority, currentAccuracy)
     } else {
-      speakWeb(text, isRealTimeFeedback, priority)
+      speakWeb(text, isRealTimeFeedback, priority, currentAccuracy)
     }
   }
   
-  // Real-time pose feedback - smooth and non-interrupting
-  const speakImmediatePoseFeedback = async (text) => {
+  // Real-time pose feedback - immediate and interrupting
+  const speakImmediatePoseFeedback = async (text, accuracy = 0) => {
     if (!isVoiceEnabled.value || !text) return
     
-    console.log('🔊 Real-time pose feedback:', text)
+    console.log('🔊 Real-time pose feedback:', text, 'Accuracy:', accuracy)
     
-    // Use normal priority to avoid cutting - let it queue naturally
-    await speak(text, 'normal', true)
+    // Use real-time priority to interrupt current speech
+    await speak(text, 'normal', true, accuracy)
   }
 
   // Generate feedback based on pose data
@@ -256,29 +259,25 @@ export function useVoiceFeedback() {
     
     const { accuracy, correct_form, feedback, poseName } = poseData
     
-    // Generate feedback based on accuracy and form
+    // Generate feedback based on accuracy rules
     let feedbackMessage = ''
     
-    if (correct_form) {
-      if (accuracy >= 90) {
-        feedbackMessage = `Perfect ${poseName}!`
-      } else if (accuracy >= 80) {
-        feedbackMessage = `Good ${poseName}!`
-      } else if (accuracy >= 70) {
-        feedbackMessage = `Nice ${poseName}!`
-      } else {
-        feedbackMessage = `Keep working on your ${poseName}`
-      }
+    if (accuracy > 90) {
+      // >90% accuracy: excellent
+      feedbackMessage = `Excellent ${poseName}!`
+    } else if (accuracy >= 60) {
+      // 60-90% accuracy: keep going
+      feedbackMessage = `Keep going with your ${poseName}!`
     } else {
-      // Use specific feedback for form corrections
-      feedbackMessage = feedback || `Check your ${poseName} form`
+      // Below 60%: wrong position
+      feedbackMessage = `Wrong position! Adjust your ${poseName}`
     }
     
-    // Store accuracy for history
-    lastSpokenAccuracy.value = accuracy
+    // Use immediate real-time feedback that interrupts current speech when accuracy changes
+    speakImmediatePoseFeedback(feedbackMessage, accuracy)
     
-    // Use real-time feedback that flows naturally
-    speakImmediatePoseFeedback(feedbackMessage)
+    // Store accuracy for history after speaking
+    lastSpokenAccuracy.value = accuracy
   }
   
   // Generate motivational feedback
