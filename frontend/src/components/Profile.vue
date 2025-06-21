@@ -465,14 +465,14 @@ const submitReport = async () => {
     isSubmitting.value = true
     
     // Make API call to submit report
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/reports`, {
+    const response = await fetch(`${API_BASE_URL}/api/feedback/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         description: reportForm.value.description,
-        user_id: localStorage.getItem('user_id')
+        userid: localStorage.getItem('user_id')
       })
     })
 

@@ -23,27 +23,59 @@
       <div 
         v-for="session in workoutHistory" 
         :key="session.id"
-        class="group bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-90 rounded-2xl shadow-xl border border-white dark:border-gray-600 border-opacity-40 dark:border-opacity-30 p-5 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:scale-[1.01]"
+        class="group bg-white dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-90 rounded-2xl shadow-xl border border-white dark:border-gray-600 border-opacity-40 dark:border-opacity-30 p-5 transition-all duration-200 hover:shadow-2xl hover:scale-[1.01]"
       >
-        <!-- Icon/Avatar -->
-        <div class="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-3xl font-bold"
-             :class="getWorkoutIconBg(session.workout_type || session.workout_name)">
-          <span>{{ getWorkoutIcon(session.workout_type || session.workout_name) }}</span>
+        <!-- Main Session Info -->
+        <div class="flex items-center gap-4 mb-4">
+          <!-- Icon/Avatar -->
+          <div class="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-3xl font-bold"
+               :class="getWorkoutIconBg(session.workout_type || session.workout_name)">
+            <span>{{ getWorkoutIcon(session.workout_type || session.workout_name) }}</span>
+          </div>
+          <!-- Details -->
+          <div class="flex-1 min-w-0 flex flex-col justify-center">
+            <div class="flex items-center justify-between gap-4 w-full">
+              <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ session.workout_type || session.workout_name || 'Workout Session' }}</h3>
+              <span class="flex flex-col items-end text-base text-gray-700 dark:text-gray-300 font-semibold min-w-[100px]">
+                <span>{{ formatDateOnly(session.date || session.start_time || session.created_at) }}</span>
+                <span>{{ formatTimeOnly(session.date || session.start_time || session.created_at) }}</span>
+              </span>
+            </div>
+            <div class="flex items-center gap-3 mt-2">
+              <div class="flex items-center text-purple-700 dark:text-purple-300 font-semibold text-sm bg-purple-100 dark:bg-purple-800 rounded px-2 py-1">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {{ formatDuration(session.duration) }}
+              </div>
+            </div>
+          </div>
         </div>
-        <!-- Details -->
-        <div class="flex-1 min-w-0 flex flex-col justify-center">
-          <div class="flex items-center justify-between gap-4 w-full">
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ session.workout_type || session.workout_name || 'Workout Session' }}</h3>
-            <span class="flex flex-col items-end text-base text-gray-700 dark:text-gray-300 font-semibold min-w-[100px]">
-              <span>{{ formatDateOnly(session.date || session.start_time || session.created_at) }}</span>
-              <span>{{ formatTimeOnly(session.date || session.start_time || session.created_at) }}</span>
+
+        <!-- Exercise Names -->
+        <div v-if="session.exercises && session.exercises.length > 0" class="border-t border-gray-200 dark:border-gray-600 pt-4">
+          <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 flex items-center">
+            <span class="mr-2">🏃‍♂️</span>
+            Exercises Performed
+          </h4>
+          
+          <!-- Exercise Names List -->
+          <div class="flex flex-wrap gap-2">
+            <span 
+              v-for="exerciseName in getUniqueExercises(session.exercises)" 
+              :key="exerciseName"
+              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-300"
+            >
+              <span class="mr-1">{{ getExerciseIcon(exerciseName) }}</span>
+              {{ exerciseName }}
             </span>
           </div>
-          <div class="flex items-center gap-3 mt-2">
-            <div class="flex items-center text-purple-700 dark:text-purple-300 font-semibold text-sm bg-purple-100 dark:bg-purple-800 rounded px-2 py-1">
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              {{ formatDuration(session.duration) }}
-            </div>
+          
+        </div>
+
+        <!-- No Exercise Data -->
+        <div v-else class="border-t border-gray-200 dark:border-gray-600 pt-4">
+          <div class="text-center text-gray-500 dark:text-gray-400 text-sm py-2">
+            <span class="mr-2">📊</span>
+            No detailed exercise data available for this session
           </div>
         </div>
       </div>
@@ -144,6 +176,7 @@ const getWorkoutIcon = (name) => {
   if (n.includes('fat') || n.includes('burn')) return '🔥'
   return '🏋️‍♂️'
 }
+
 const getWorkoutIconBg = (name) => {
   if (!name) return 'bg-purple-200 text-purple-700'
   const n = name.toLowerCase()
@@ -151,6 +184,49 @@ const getWorkoutIconBg = (name) => {
   if (n.includes('muscle') || n.includes('strength')) return 'bg-yellow-200 text-yellow-700'
   if (n.includes('fat') || n.includes('burn')) return 'bg-orange-200 text-orange-700'
   return 'bg-purple-200 text-purple-700'
+}
+
+const getExerciseIcon = (exerciseName) => {
+  if (!exerciseName) return '🏃‍♂️'
+  const name = exerciseName.toLowerCase()
+  if (name.includes('squat')) return '🏋️‍♀️'
+  if (name.includes('plank')) return '🤸‍♂️'
+  if (name.includes('lunge')) return '🦵'
+  if (name.includes('cardio')) return '🏃‍♂️'
+  if (name.includes('push')) return '💪'
+  return '🏃‍♂️'
+}
+
+// Exercise analysis helpers
+const getUniqueExercises = (exercises) => {
+  if (!exercises || !Array.isArray(exercises)) return []
+  const unique = new Set(exercises.map(e => e.exercise_name || 'Unknown'))
+  return Array.from(unique)
+}
+
+const getAverageAccuracy = (exercises) => {
+  if (!exercises || !Array.isArray(exercises) || exercises.length === 0) return 0
+  const validAccuracies = exercises
+    .map(e => e.accuracy || 0)
+    .filter(accuracy => accuracy > 0)
+  if (validAccuracies.length === 0) return 0
+  const sum = validAccuracies.reduce((acc, accuracy) => acc + accuracy, 0)
+  return Math.round(sum / validAccuracies.length)
+}
+
+const getCorrectFormCount = (exercises) => {
+  if (!exercises || !Array.isArray(exercises)) return 0
+  return exercises.filter(e => e.correct_form === true).length
+}
+
+const formatExerciseTime = (timestamp) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
 onMounted(() => {

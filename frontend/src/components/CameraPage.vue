@@ -79,11 +79,14 @@
       </span>
     </div>
 
-    <!-- Workout Session Status -->
+    <!-- Workout Session Status with Timer -->
     <div v-if="workoutSessionId" class="absolute top-28 left-4 flex items-center space-x-2 z-20">
       <div class="w-3 h-3 rounded-full bg-purple-500 animate-pulse"></div>
       <span class="text-white text-sm bg-purple-600 bg-opacity-80 px-2 py-1 rounded">
         Session Active
+      </span>
+      <span class="text-white text-sm bg-blue-600 bg-opacity-80 px-3 py-1 rounded font-mono">
+        {{ sessionDuration }}
       </span>
     </div>
 
@@ -110,33 +113,6 @@
           <div class="w-2 h-2 bg-white rounded-full"></div>
         </div>
       </div>
-
-      <!-- Voice Settings Panel -->
-      <div v-if="isVoiceEnabled" class="bg-black bg-opacity-80 rounded-lg p-3 min-w-[140px]">
-      <div class="text-white text-xs mb-2 font-semibold">Voice Settings</div>
-      
-      <div class="text-white text-xs mb-1">Volume</div>
-      <input 
-        type="range" 
-        min="0" 
-        max="1" 
-        step="0.1" 
-        :value="voiceSettings.volume"
-        @input="adjustVolume(parseFloat($event.target.value))"
-        class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer mb-2"
-      />
-      
-      <div class="text-white text-xs mb-1">Speech Rate</div>
-      <input 
-        type="range" 
-        min="0.5" 
-        max="2" 
-        step="0.1" 
-        :value="voiceSettings.rate"
-        @input="adjustRate(parseFloat($event.target.value))"
-        class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer mb-3"
-      />
-    </div>
     </div>
 
     <!-- Pose Analysis Results -->
@@ -156,23 +132,6 @@
           <span :class="poseData.correct_form ? 'text-green-400' : 'text-red-400'" class="font-semibold">
             {{ poseData.correct_form ? '✓ Correct' : '⚠ Needs Work' }}
           </span>
-        </div>
-        
-        <div v-if="landmarks.length > 0" class="border-t border-gray-600 pt-2">
-          <div class="flex items-center justify-between text-xs">
-            <span>Landmarks:</span>
-            <span class="text-cyan-400 font-mono">{{ landmarks.length }}/33</span>
-          </div>
-          <div class="flex items-center justify-between text-xs">
-            <span>Visible:</span>
-            <span class="text-green-400 font-mono">{{ landmarks.filter(l => (l.visibility || 1) > 0.5).length }}</span>
-          </div>
-          <div class="w-full bg-gray-700 rounded-full h-1.5 mt-1">
-            <div 
-              class="bg-cyan-400 h-1.5 rounded-full transition-all duration-300" 
-              :style="{ width: Math.round((landmarks.filter(l => (l.visibility || 1) > 0.5).length / 33) * 100) + '%' }"
-            ></div>
-          </div>
         </div>
         
         <div v-if="poseData.feedback && poseData.feedback.length > 0" class="border-t border-gray-600 pt-2">
@@ -261,6 +220,41 @@ export default {
     const workoutStartTime = ref(null)
     const exerciseData = ref([])
     const currentExerciseStartTime = ref(null)
+    const sessionDuration = ref('00:00')
+    
+    // Timer interval for session duration
+    let timerInterval = null
+
+    // Format duration from seconds to MM:SS
+    const formatDuration = (seconds) => {
+      const mins = Math.floor(seconds / 60)
+      const secs = seconds % 60
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+
+    // Start the session timer
+    const startSessionTimer = () => {
+      if (timerInterval) {
+        clearInterval(timerInterval)
+      }
+      
+      timerInterval = setInterval(() => {
+        if (workoutStartTime.value) {
+          const now = new Date()
+          const elapsed = Math.floor((now - workoutStartTime.value) / 1000)
+          sessionDuration.value = formatDuration(elapsed)
+        }
+      }, 1000)
+    }
+
+    // Stop the session timer
+    const stopSessionTimer = () => {
+      if (timerInterval) {
+        clearInterval(timerInterval)
+        timerInterval = null
+      }
+      sessionDuration.value = '00:00'
+    }
 
     // Platform detection
     const isMobile = Capacitor.isNativePlatform()
@@ -915,15 +909,19 @@ export default {
           // Try multiple possible field names for session ID
           const sessionId = data.session_id || data.id || data.workout_session_id || data.sessionId
           
-          if (sessionId) {
-            workoutSessionId.value = sessionId
-            console.log('✅ Workout session started successfully! ID:', workoutSessionId.value)
-          } else {
-            console.error('❌ No session ID found in response. Available fields:', Object.keys(data))
-            // Fallback: generate a temporary ID
-            workoutSessionId.value = `temp_${Date.now()}`
-            console.log('🔧 Using temporary session ID:', workoutSessionId.value)
-          }
+                  if (sessionId) {
+          workoutSessionId.value = sessionId
+          console.log('✅ Workout session started successfully! ID:', workoutSessionId.value)
+          // Start the timer when session is successfully created
+          startSessionTimer()
+        } else {
+          console.error('❌ No session ID found in response. Available fields:', Object.keys(data))
+          // Fallback: generate a temporary ID
+          workoutSessionId.value = `temp_${Date.now()}`
+          console.log('🔧 Using temporary session ID:', workoutSessionId.value)
+          // Start the timer even for temporary sessions
+          startSessionTimer()
+        }
         } else {
           const errorText = await response.text()
           console.error('❌ Failed to start workout session:', {
@@ -935,6 +933,8 @@ export default {
           // If backend is not available, create a temporary session
           workoutSessionId.value = `offline_${Date.now()}`
           console.log('🔧 Backend unavailable, using offline session ID:', workoutSessionId.value)
+          // Start the timer for offline sessions
+          startSessionTimer()
         }
       } catch (error) {
         console.error('❌ Error starting workout session:', error)
@@ -942,6 +942,8 @@ export default {
         // Fallback: create a temporary session ID so the workout can still be tracked
         workoutSessionId.value = `error_${Date.now()}`
         console.log('🔧 Error occurred, using fallback session ID:', workoutSessionId.value)
+        // Start the timer for error fallback sessions
+        startSessionTimer()
       }
     }
 
@@ -1025,8 +1027,7 @@ export default {
 
         // Voice feedback for session completion
         if (isVoiceEnabled.value) {
-          const minutes = Math.max(1, Math.floor(duration / 60))
-          speak(`Great job! Your ${selectedExercise.value} session lasted ${minutes} minutes`, 'medium')
+          speak('Workout session ended', 'medium')
         }
 
       } catch (error) {
@@ -1057,7 +1058,8 @@ export default {
           console.error('❌ Failed to save offline session:', storageError)
         }
       } finally {
-        // Reset session data
+        // Stop the timer and reset session data
+        stopSessionTimer()
         workoutSessionId.value = null
         workoutStartTime.value = null
         exerciseData.value = []
@@ -1381,6 +1383,7 @@ export default {
 
     onUnmounted(() => {
       stopCamera()
+      stopSessionTimer() // Clean up session timer
       stopFallbackMode() // Clean up fallback mode
       if (socket) {
         socket.disconnect()
@@ -1413,6 +1416,7 @@ export default {
       poseData,
       fallbackInterval: ref(fallbackInterval),
       workoutSessionId,
+      sessionDuration,
       toggleCamera,
       selectExercise,
       

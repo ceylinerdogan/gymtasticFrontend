@@ -108,29 +108,6 @@
         </div>
       </div>
 
-      <!-- Recommended Workouts -->
-      <div v-if="recommendedWorkouts.length > 0" class="mb-8">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-white dark:text-white mb-4 flex items-center">
-          <span class="mr-2">💪</span> Recommended for You
-        </h2>
-        <div class="space-y-3">
-          <div v-for="workout in recommendedWorkouts" :key="workout.id" 
-               class="bg-white dark:bg-gray-800 dark:bg-gray-800 bg-opacity-80 dark:bg-opacity-90 dark:bg-opacity-90 rounded-xl p-4 shadow-md flex items-center justify-between cursor-pointer hover:bg-opacity-100 dark:hover:bg-opacity-100 dark:hover:bg-opacity-100 transition-all"
-               @click="startWorkoutWithId(workout.id)">
-            <div class="flex items-center">
-              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-800 dark:to-pink-800 dark:from-purple-800 dark:to-pink-800 flex items-center justify-center mr-4">
-                <span class="text-xl">{{ getWorkoutEmoji(workout.type) }}</span>
-              </div>
-              <div>
-                <h3 class="font-semibold text-gray-900 dark:text-white dark:text-white">{{ workout.name }}</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400">{{ workout.duration }} mins • {{ workout.difficulty }}</p>
-              </div>
-            </div>
-            <span class="text-gray-400 dark:text-gray-300 dark:text-gray-300">›</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Weekly Progress -->
       <div class="mb-8">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white dark:text-white mb-4 flex items-center">
@@ -431,11 +408,8 @@ const getStreakMotivation = (streak) => {
 // Fetch user stats with streak and weekly progress calculation
 const fetchUserStats = async () => {
   try {
-    // Fetch both stats and history to calculate streak and weekly progress
-    const [statsRes, historyRes] = await Promise.all([
-      fetchWithAuth(`${API_BASE_URL}/api/users/stats`),
-      fetchWithAuth(`${API_BASE_URL}/api/workouts/history`)
-    ])
+    // Fetch workout history to calculate streak and weekly progress
+    const historyRes = await fetchWithAuth(`${API_BASE_URL}/api/workouts/history`)
 
     let calculatedStreak = 0
     let calculatedWeeklyProgress = 0
@@ -456,21 +430,11 @@ const fetchUserStats = async () => {
       console.log(`Weekly Progress: ${weeklyData.progress}% (${weeklyData.uniqueWorkoutDays} unique workout days this week)`)
     }
 
-    // Get other stats from API
-    if (statsRes.ok) {
-      const data = await statsRes.json()
-      stats.value = {
-        weeklyProgress: calculatedWeeklyProgress, // Use calculated weekly progress
-        streak: calculatedStreak, // Use calculated streak
-        points: data.total_points || 0
-      }
-    } else {
-      // If stats API fails, still use calculated values
-      stats.value = {
-        weeklyProgress: calculatedWeeklyProgress,
-        streak: calculatedStreak,
-        points: 0
-      }
+    // Set calculated values (no backend stats API needed)
+    stats.value = {
+      weeklyProgress: calculatedWeeklyProgress,
+      streak: calculatedStreak,
+      points: 0 // Points calculation can be added later if needed
     }
 
     // Update motivation based on streak
@@ -480,44 +444,47 @@ const fetchUserStats = async () => {
     }
 
   } catch (error) {
-    console.error('Error fetching user stats:', error)
-    // Try to calculate values even if other APIs fail
-    try {
-      const historyRes = await fetchWithAuth(`${API_BASE_URL}/api/workouts/history`)
-      if (historyRes.ok) {
-        const historyData = await historyRes.json()
-        const workoutHistory = historyData.history || historyData.workout_sessions || historyData.sessions || historyData || []
-        
-        // Calculate streak
-        const calculatedStreak = calculateWorkoutStreak(workoutHistory)
-        stats.value.streak = calculatedStreak
-        
-        // Calculate weekly progress
-        const weeklyData = calculateWeeklyProgress(workoutHistory)
-        stats.value.weeklyProgress = weeklyData.progress
-        weekProgress.value = weeklyData.days
-        
-        const streakMotivation = getStreakMotivation(calculatedStreak)
-        if (streakMotivation) {
-          currentMotivation.value = streakMotivation
-        }
-      }
-    } catch (historyError) {
-      console.error('Error fetching workout history for calculations:', historyError)
+    console.error('Error fetching workout history for stats calculation:', error)
+    // Set default values if history fetch fails
+    stats.value = {
+      weeklyProgress: 0,
+      streak: 0,
+      points: 0
     }
   }
 }
 
-// Fetch recommended workouts
+// Fetch recommended workouts - now using local fallback data
 const fetchRecommendedWorkouts = async () => {
   try {
-    const res = await fetchWithAuth(`${API_BASE_URL}/api/workouts/recommended`)
-    if (res.ok) {
-      const data = await res.json()
-      recommendedWorkouts.value = data.workouts || []
-    }
+    // Use local fallback workouts instead of API call
+    recommendedWorkouts.value = [
+      {
+        id: 1,
+        name: 'Burn Your Fat',
+        type: 'Cardio',
+        duration: 20,
+        difficulty: 'Beginner'
+      },
+      {
+        id: 2,
+        name: 'Do Cardio!',
+        type: 'Cardio',
+        duration: 35,
+        difficulty: 'Intermediate'
+      },
+      {
+        id: 3,
+        name: 'Gain Muscle',
+        type: 'Strength',
+        duration: 45,
+        difficulty: 'Advanced'
+      }
+    ]
+    console.log('Using local recommended workouts')
   } catch (error) {
-    console.error('Error fetching recommended workouts:', error)
+    console.error('Error setting up recommended workouts:', error)
+    recommendedWorkouts.value = []
   }
 }
 
@@ -572,49 +539,11 @@ const calculateWeeklyProgress = (workoutHistory) => {
   }
 }
 
-// Fetch weekly progress with history-based calculation
+// Calculate weekly progress from workout history (no longer needed as separate function)
 const fetchWeeklyProgress = async () => {
-  try {
-    // Try to get workout history for accurate calculation
-    const historyRes = await fetchWithAuth(`${API_BASE_URL}/api/workouts/history`)
-    
-    if (historyRes.ok) {
-      const historyData = await historyRes.json()
-      const workoutHistory = historyData.history || historyData.workout_sessions || historyData.sessions || historyData || []
-      
-      const weeklyData = calculateWeeklyProgress(workoutHistory)
-      stats.value.weeklyProgress = weeklyData.progress
-      weekProgress.value = weeklyData.days
-      
-      console.log(`Weekly Progress: ${weeklyData.progress}% (${weeklyData.uniqueWorkoutDays} unique workout days this week)`)
-    } else {
-      // Fallback to API if available
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/users/weekly-progress`)
-      if (res.ok) {
-        const data = await res.json()
-        weekProgress.value = data.days || []
-        // Don't override calculated progress from stats
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching weekly progress:', error)
-    // Set default empty week if all else fails
-    const today = new Date()
-    const currentDay = today.getDay()
-    const monday = new Date(today)
-    monday.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1))
-    
-    const defaultWeek = []
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(monday)
-      day.setDate(monday.getDate() + i)
-      defaultWeek.push({
-        date: day.toISOString().split('T')[0],
-        completed: false
-      })
-    }
-    weekProgress.value = defaultWeek
-  }
+  // This function is now redundant since weekly progress is calculated in fetchUserStats
+  // Keep it for compatibility but make it do nothing
+  console.log('Weekly progress is now calculated in fetchUserStats')
 }
 
 const rotateMotivation = () => {
