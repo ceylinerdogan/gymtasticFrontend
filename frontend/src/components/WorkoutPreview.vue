@@ -61,7 +61,7 @@
         </div>
 
         <!-- Start Button -->
-        <div class="sticky bottom-4 pt-4">
+        <div class="sticky bottom-4 pt-3">
           <button
             @click="startWorkout"
             class="w-full bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-500 dark:to-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:from-purple-700 hover:to-pink-700 dark:hover:from-purple-600 dark:hover:to-purple-800 transform transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
