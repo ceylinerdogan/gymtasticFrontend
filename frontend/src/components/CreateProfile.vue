@@ -3,12 +3,6 @@
     <div class="w-full max-w-md bg-white bg-opacity-20 rounded-xl shadow-lg p-8">
       <h2 class="text-2xl font-bold text-white mb-6 text-center">Edit Profile</h2>
       <form>
-        <div class="flex flex-col items-center mb-6">
-          <div class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4">
-            <span class="text-4xl">🖼️</span>
-          </div>
-          <button class="text-purple-700 underline mb-4">Change Profile Photo</button>
-        </div>
         <div class="mb-4">
           <input type="text" placeholder="First Name" class="w-full mb-2 px-4 py-2 rounded-lg bg-white bg-opacity-80 focus:outline-none" />
           <input type="text" placeholder="Last Name" class="w-full mb-2 px-4 py-2 rounded-lg bg-white bg-opacity-80 focus:outline-none" />
