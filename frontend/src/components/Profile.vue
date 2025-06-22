@@ -2,16 +2,8 @@
   <div class="min-h-screen bg-gradient-to-b from-purple-400 to-pink-300 dark:from-gray-900 dark:to-gray-800 pb-20 transition-all duration-300">
     <!-- Profile Header -->
     <div class="pt-8 pb-4 text-center">
-      <div class="w-20 h-20 rounded-full bg-white dark:bg-gray-700 mx-auto mb-3 flex items-center justify-center border-2 border-white dark:border-gray-600 overflow-hidden">
-        <img
-          v-if="profileImageSrc"
-          :src="profileImageSrc"
-          alt="Profile Picture"
-          class="w-full h-full object-cover"
-          @load="onImageLoad"
-          @error="onImageError"
-        />
-        <span v-else class="text-2xl text-gray-700 dark:text-gray-300">{{ getInitials(profile.full_name) }}</span>
+      <div class="w-20 h-20 rounded-full bg-white dark:bg-gray-700 mx-auto mb-3 flex items-center justify-center border-2 border-white dark:border-gray-600">
+        <span class="text-2xl text-gray-700 dark:text-gray-300">{{ getInitials(profile.full_name) }}</span>
       </div>
       <h1 class="text-2xl font-bold text-white mb-1">{{ profile.full_name }}</h1>
       <p class="text-white/90 dark:text-gray-300">{{ formatGoal(profile.fitness_goal) }}</p>
@@ -108,25 +100,6 @@
       <div v-else class="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden transition-colors duration-300">
         <div class="p-6">
           <form @submit.prevent="updateProfile" class="space-y-4">
-            <!-- Profile Picture Section -->
-            <div class="mb-6">
-              <label class="block text-gray-600 mb-2">Profile Picture</label>
-              <button 
-                type="button"
-                @click="$refs.fileInput.click()"
-                class="px-6 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
-              >
-                Choose Photo
-              </button>
-              <input 
-                type="file" 
-                accept="image/*" 
-                @change="onFileChange" 
-                class="hidden" 
-                ref="fileInput"
-              />
-            </div>
-
             <!-- Form Fields -->
             <div class="space-y-4">
               <div>
@@ -304,11 +277,7 @@ const editing = ref(false)
 const editProfile = ref({})
 const editError = ref('')
 const editSuccess = ref(false)
-const selectedPic = ref(null)
-const imageLoaded = ref(false)
-const profileImageSrc = ref('')
 const router = useRouter()
-const fileInput = ref(null)
 const showReportModal = ref(false)
 const showSuccessToast = ref(false)
 const isSubmitting = ref(false)
@@ -355,65 +324,7 @@ const formatDate = (dateString) => {
   }
 }
 
-const processProfileImage = (base64String) => {
-  if (!base64String) {
-    profileImageSrc.value = ''
-    return
-  }
-  
-  // Ensure the base64 string has the proper data URL format
-  if (base64String.startsWith('data:image/')) {
-    profileImageSrc.value = base64String
-  } else {
-    // If it's just the base64 string without the data URL prefix, add it
-    profileImageSrc.value = `data:image/jpeg;base64,${base64String}`
-  }
-}
 
-const onImageLoad = () => {
-  imageLoaded.value = true
-  console.log('Profile image loaded successfully')
-}
-
-const onImageError = () => {
-  imageLoaded.value = false
-  profileImageSrc.value = ''
-  console.log('Profile image failed to load')
-}
-
-const onFileChange = (e) => {
-  const file = e.target.files[0]
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      selectedPic.value = event.target.result
-    }
-    reader.readAsDataURL(file)
-  }
-}
-
-const uploadPic = async () => {
-  const token = localStorage.getItem('token')
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/users/profilepic`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ profilepic: selectedPic.value })
-    })
-    if (res.ok) {
-      profile.value.profilepic = selectedPic.value
-      processProfileImage(selectedPic.value)
-      selectedPic.value = null
-      editSuccess.value = true
-    }
-  } catch (e) {
-    console.error('Error uploading profile picture:', e)
-    editError.value = 'Failed to upload profile picture'
-  }
-}
 
 const updateProfile = async () => {
   editError.value = ''
@@ -421,9 +332,6 @@ const updateProfile = async () => {
   const token = localStorage.getItem('token')
   // Prepare payload
   const payload = { ...editProfile.value }
-  if (!payload.profile_pic || typeof payload.profile_pic !== 'string') {
-    delete payload.profile_pic
-  }
   // Remove username from payload (cannot be updated)
   delete payload.username
   delete payload.email
@@ -511,10 +419,6 @@ onMounted(async () => {
       if (res.ok) {
         const data = await res.json()
         profile.value = data.profile || {}
-        // Process profile image if it exists
-        if (profile.value.profilepic) {
-          processProfileImage(profile.value.profilepic)
-        }
         // Optionally calculate BMI and category
         if (profile.value.height && profile.value.weight) {
           const heightM = profile.value.height > 10 ? profile.value.height / 100 : profile.value.height
